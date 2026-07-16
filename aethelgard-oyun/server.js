@@ -45,7 +45,6 @@ if (fs.existsSync(DATA_FILE)) {
 function saveData() { fs.writeFileSync(DATA_FILE, JSON.stringify(serverState, null, 2)); }
 
 let activePlayers = {}; 
-let activeLogins = {}; 
 
 io.on('connection', (socket) => {
     console.log('Bir ruh bağlantı kurdu. ID:', socket.id);
@@ -53,10 +52,6 @@ io.on('connection', (socket) => {
     socket.on('login_request', (username, password) => {
         const user = serverState.users.find(u => u.username === username && u.password === password);
         if (user) {
-            if (activeLogins[username]) {
-                io.to(activeLogins[username]).emit('force_logout', "Başka bir diyardan giriş yapıldı. Ruhun ikiye bölündü!");
-            }
-            activeLogins[username] = socket.id;
             socket.username = username;
 
             if (!serverState.usersData[username]) {
@@ -87,7 +82,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        if(socket.username && activeLogins[socket.username] === socket.id) { delete activeLogins[socket.username]; }
         delete activePlayers[socket.id];
         io.emit('player_hidden', socket.id); 
     });
@@ -171,12 +165,17 @@ io.on('connection', (socket) => {
             if(list) {
                 let obj = list.find(o => o.id === objId);
                 if(obj) {
-                    if (action === 'TOGGLE_LOCK') obj.isLocked = !obj.isLocked;
+                    if (action === 'TOGGLE_LOCK') {
+                        obj.isLocked = !obj.isLocked;
+                        // Kilitleniyorsa ve açıksa zorla kapat
+                        if(obj.isLocked && obj.isOpen) obj.isOpen = false;
+                    }
                     else if (action === 'TOGGLE_OPEN') {
                         if (!obj.isLocked) obj.isOpen = !obj.isOpen;
                     }
                     saveData();
-                    io.emit('map_objects_synced', mapId, map); // HERKESE ANINDA GİDER
+                    const payload = { walls: map.walls, tps: map.tps, bots: map.bots, roofs: map.roofs, notes: map.notes, musicZones: map.musicZones, doors: map.doors, chests: map.chests };
+                    io.emit('map_objects_synced', mapId, payload); // HERKESE ANINDA GİDER
                 }
             }
         }
@@ -184,7 +183,15 @@ io.on('connection', (socket) => {
 
     socket.on('chest_update', (mapId, chestId, items) => {
         let map = serverState.maps.find(m => m.id === mapId);
-        if (map && map.chests) { let chest = map.chests.find(c => c.id === chestId); if(chest) { chest.items = items; saveData(); io.emit('map_objects_synced', mapId, map); } }
+        if (map && map.chests) { 
+            let chest = map.chests.find(c => c.id === chestId); 
+            if(chest) { 
+                chest.items = items; 
+                saveData(); 
+                const payload = { walls: map.walls, tps: map.tps, bots: map.bots, roofs: map.roofs, notes: map.notes, musicZones: map.musicZones, doors: map.doors, chests: map.chests };
+                io.emit('map_objects_synced', mapId, payload); 
+            } 
+        }
     });
 
     // NOT SİLME YARDIMCISI (ANINDA SENKRONİZASYON FİXLENDİ)
@@ -193,8 +200,8 @@ io.on('connection', (socket) => {
         if (map && map.notes) {
             map.notes = map.notes.filter(n => n.id !== noteId);
             saveData();
-            // Not silindiği an haritadaki herkese güncel haritayı yayınla
-            io.emit('map_objects_synced', mapId, map); 
+            const payload = { walls: map.walls, tps: map.tps, bots: map.bots, roofs: map.roofs, notes: map.notes, musicZones: map.musicZones, doors: map.doors, chests: map.chests };
+            io.emit('map_objects_synced', mapId, payload); 
         }
     });
 
