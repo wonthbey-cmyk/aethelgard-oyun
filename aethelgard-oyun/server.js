@@ -9,23 +9,21 @@ const io = new Server(server);
 
 app.use(express.static('public'));
 
-// --- SUNUCU HAFIZASI VE VERİ KALICILIĞI ---
+// --- SUNUCU HAFIZASI VE VERİ KALICILIĞI (KAYIT) ---
 const DATA_FILE = 'server_data.json';
 
 let serverState = {
     maps: [],
     mainMapId: null,
     weather: 'NONE', // 'NONE', 'RAIN', 'SNOW'
+    environmentColor: "rgba(0,0,0,0)",
+    speedMultiplier: 1.0,
+    worldTime: { hour: 12, minute: 0, day: 1, season: 'Güz', timeFlowSpeed: 1.0 },
     users: [
         { username: '213enbüyükbenim', password: '213213', role: 'GM' }
-    ],
-    // Zaman ve ortam ayarları
-    environmentColor: "rgba(0,0,0,0)",
-    worldTime: { hour: 12, minute: 0, day: 1, season: 'Güz', timeFlowSpeed: 1.0 },
-    speedMultiplier: 1.0
+    ]
 };
 
-// Sunucu açıldığında eski verileri yükle
 if (fs.existsSync(DATA_FILE)) {
     try {
         const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -48,7 +46,6 @@ let activePlayers = {};
 io.on('connection', (socket) => {
     console.log('Bir ruh bağlantı kurdu. ID:', socket.id);
 
-    // Giriş
     socket.on('login_request', (username, password) => {
         const user = serverState.users.find(u => u.username === username && u.password === password);
         if (user) {
@@ -58,7 +55,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Kullanıcı Oluşturma
     socket.on('create_user', (newUsername, newPassword) => {
         if (serverState.users.find(u => u.username === newUsername)) {
             socket.emit('user_create_result', false, 'Bu kullanıcı adı zaten alınmış!'); return;
@@ -68,20 +64,17 @@ io.on('connection', (socket) => {
         socket.emit('user_create_result', true, `${newUsername} başarıyla diyara eklendi.`);
     });
 
-    // Bağlantı kopması
     socket.on('disconnect', () => {
         console.log('Bir gezgin diyardan ayrıldı. ID:', socket.id);
         delete activePlayers[socket.id];
         io.emit('players_sync', activePlayers); 
     });
 
-    // Oyuncu Hareketi (Lagı önlemek için sadece veriyi günceller)
     socket.on('player_update', (playerData) => {
         activePlayers[socket.id] = playerData;
         socket.broadcast.emit('players_sync', activePlayers);
     });
 
-    // Harita Ekleme
     socket.on('gm_upload_map', (newMap) => {
         serverState.maps.push(newMap);
         if (serverState.maps.length === 1) serverState.mainMapId = newMap.id;
@@ -89,7 +82,6 @@ io.on('connection', (socket) => {
         io.emit('world_maps_updated', serverState.maps, serverState.mainMapId);
     });
 
-    // GM Obje Senkronizasyonu (Çatı, Duvar, Zehir, Bot, TP)
     socket.on('gm_update_map_objects', (mapId, objectsData) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
@@ -103,7 +95,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evren ve Zaman Ayarları Senkronizasyonu
     socket.on('gm_update_universe', (envColor, speedMulti, timeData) => {
         serverState.environmentColor = envColor;
         serverState.speedMultiplier = speedMulti;
@@ -112,17 +103,18 @@ io.on('connection', (socket) => {
         io.emit('universe_synced', envColor, speedMulti, timeData);
     });
 
-    // Hava Durumu
     socket.on('gm_set_weather', (weatherType) => {
         serverState.weather = weatherType;
         saveData();
         io.emit('weather_sync', weatherType);
     });
 
-    // Sohbet ve Duyuru
+    // Chat mesajı artık tam objeyle gidiyor (koordinat dahil)
     socket.on('chat_message', (msgData) => {
+        msgData.socketId = socket.id; // Gönderenin ID'sini damgala
         socket.broadcast.emit('new_chat_message', msgData);
     });
+
     socket.on('gm_god_message', (text) => {
         io.emit('show_god_message', text);
     });
