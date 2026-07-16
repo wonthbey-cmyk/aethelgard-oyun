@@ -5,7 +5,7 @@ const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*" } });
 
 app.use(express.static('public'));
 
@@ -16,9 +16,6 @@ let serverState = {
     maps: [],
     mainMapId: null,
     weather: 'NONE', // 'NONE', 'RAIN', 'SNOW'
-    environmentColor: "rgba(0,0,0,0)",
-    speedMultiplier: 1.0,
-    worldTime: { hour: 12, minute: 0, day: 1, season: 'Güz', timeFlowSpeed: 1.0 },
     users: [
         { username: '213enbüyükbenim', password: '213213', role: 'GM' }
     ]
@@ -42,6 +39,7 @@ function saveData() {
 }
 
 let activePlayers = {}; 
+let activeTrades = {}; // Takas oturumları
 
 io.on('connection', (socket) => {
     console.log('Bir ruh bağlantı kurdu. ID:', socket.id);
@@ -67,12 +65,27 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('Bir gezgin diyardan ayrıldı. ID:', socket.id);
         delete activePlayers[socket.id];
+        
+        // Eğer iptal olan takası varsa sil
+        for(let tId in activeTrades) {
+            if(activeTrades[tId].p1 === socket.id || activeTrades[tId].p2 === socket.id) {
+                const other = activeTrades[tId].p1 === socket.id ? activeTrades[tId].p2 : activeTrades[tId].p1;
+                io.to(other).emit('trade_cancelled', "Karşı taraf diyardan ayrıldı.");
+                delete activeTrades[tId];
+            }
+        }
         io.emit('players_sync', activePlayers); 
     });
 
     socket.on('player_update', (playerData) => {
         activePlayers[socket.id] = playerData;
-        socket.broadcast.emit('players_sync', activePlayers);
+        // Eğer Ghost modundaysa sadece GM'lere veya kimseye gönderme, ama sistem basit kalsın, kimseye iletmiyoruz
+        if (playerData.isGhost) {
+            // Sadece kendisi haritada ama kimseye gönderilmiyor
+            socket.broadcast.emit('player_hidden', socket.id); 
+        } else {
+            socket.broadcast.emit('player_sync_single', socket.id, playerData);
+        }
     });
 
     socket.on('gm_upload_map', (newMap) => {
@@ -90,17 +103,11 @@ io.on('connection', (socket) => {
             map.tps = objectsData.tps;
             map.bots = objectsData.bots;
             map.roofs = objectsData.roofs || [];
+            map.notes = objectsData.notes || []; // Notlar
+            map.musicZones = objectsData.musicZones || []; // Müzik Alanları
             saveData();
             socket.broadcast.emit('map_objects_synced', mapId, objectsData);
         }
-    });
-
-    socket.on('gm_update_universe', (envColor, speedMulti, timeData) => {
-        serverState.environmentColor = envColor;
-        serverState.speedMultiplier = speedMulti;
-        serverState.worldTime = timeData;
-        saveData();
-        io.emit('universe_synced', envColor, speedMulti, timeData);
     });
 
     socket.on('gm_set_weather', (weatherType) => {
@@ -109,14 +116,88 @@ io.on('connection', (socket) => {
         io.emit('weather_sync', weatherType);
     });
 
-    // Chat mesajı artık tam objeyle gidiyor (koordinat dahil)
+    socket.on('gm_teleport_action', (action, targetId, myMapId, myX, myY) => {
+        if (!activePlayers[targetId]) return;
+        if (action === 'goto') {
+            socket.emit('force_teleport', activePlayers[targetId].mapId, activePlayers[targetId].visualX, activePlayers[targetId].visualY);
+        } else if (action === 'pull') {
+            io.to(targetId).emit('force_teleport', myMapId, myX, myY);
+        }
+    });
+
     socket.on('chat_message', (msgData) => {
-        msgData.socketId = socket.id; // Gönderenin ID'sini damgala
+        msgData.socketId = socket.id;
         socket.broadcast.emit('new_chat_message', msgData);
     });
 
     socket.on('gm_god_message', (text) => {
         io.emit('show_god_message', text);
+    });
+
+    socket.on('trade_request', (targetId, myName) => {
+        if(activePlayers[targetId]) {
+            io.to(targetId).emit('trade_request_received', socket.id, myName);
+        }
+    });
+
+    socket.on('trade_accept', (requesterId) => {
+        if(activePlayers[requesterId]) {
+            const tradeId = socket.id + "_" + requesterId;
+            activeTrades[tradeId] = {
+                p1: requesterId, p2: socket.id,
+                p1Items: [], p2Items: [],
+                p1Gold: 0, p2Gold: 0,
+                p1Locked: false, p2Locked: false
+            };
+            io.to(requesterId).emit('trade_started', tradeId, 'p1');
+            io.to(socket.id).emit('trade_started', tradeId, 'p2');
+        }
+    });
+
+    socket.on('trade_decline', (requesterId) => {
+        io.to(requesterId).emit('trade_cancelled', "Karşı taraf takası reddetti.");
+    });
+
+    socket.on('trade_update_offer', (tradeId, role, items, gold) => {
+        if(activeTrades[tradeId]) {
+            if(role === 'p1') { activeTrades[tradeId].p1Items = items; activeTrades[tradeId].p1Gold = gold; activeTrades[tradeId].p1Locked = false; activeTrades[tradeId].p2Locked = false; }
+            if(role === 'p2') { activeTrades[tradeId].p2Items = items; activeTrades[tradeId].p2Gold = gold; activeTrades[tradeId].p1Locked = false; activeTrades[tradeId].p2Locked = false; }
+            io.to(activeTrades[tradeId].p1).emit('trade_sync', activeTrades[tradeId]);
+            io.to(activeTrades[tradeId].p2).emit('trade_sync', activeTrades[tradeId]);
+        }
+    });
+
+    socket.on('trade_lock', (tradeId, role) => {
+        if(activeTrades[tradeId]) {
+            if(role === 'p1') activeTrades[tradeId].p1Locked = true;
+            if(role === 'p2') activeTrades[tradeId].p2Locked = true;
+            io.to(activeTrades[tradeId].p1).emit('trade_sync', activeTrades[tradeId]);
+            io.to(activeTrades[tradeId].p2).emit('trade_sync', activeTrades[tradeId]);
+        }
+    });
+
+    socket.on('trade_confirm', (tradeId, role, finalInventory, finalGold) => {
+        // Güvenlik için oyuncular işlem bitince bana son çantalarını yolluyorlar
+        // Gerçek mmo'larda bu sunucu tarafında yapılır, biz şimdilik state'i oyuncudan güvenerek alıyoruz
+        if(activeTrades[tradeId]) {
+            if(role === 'p1') activeTrades[tradeId].p1Confirmed = { inv: finalInventory, gold: finalGold };
+            if(role === 'p2') activeTrades[tradeId].p2Confirmed = { inv: finalInventory, gold: finalGold };
+            
+            if(activeTrades[tradeId].p1Confirmed && activeTrades[tradeId].p2Confirmed) {
+                // İkisi de onayladı, verileri çapraz gönderip işlemi bitir
+                io.to(activeTrades[tradeId].p1).emit('trade_success', activeTrades[tradeId].p1Confirmed.inv, activeTrades[tradeId].p1Confirmed.gold);
+                io.to(activeTrades[tradeId].p2).emit('trade_success', activeTrades[tradeId].p2Confirmed.inv, activeTrades[tradeId].p2Confirmed.gold);
+                delete activeTrades[tradeId];
+            }
+        }
+    });
+
+    socket.on('trade_cancel', (tradeId) => {
+        if(activeTrades[tradeId]) {
+            io.to(activeTrades[tradeId].p1).emit('trade_cancelled', "Takas iptal edildi.");
+            io.to(activeTrades[tradeId].p2).emit('trade_cancelled', "Takas iptal edildi.");
+            delete activeTrades[tradeId];
+        }
     });
 });
 
