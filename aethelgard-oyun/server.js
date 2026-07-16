@@ -5,17 +5,18 @@ const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server);
 
 app.use(express.static('public'));
 
-// --- SUNUCU HAFIZASI VE VERİ KALICILIĞI (KAYIT) ---
 const DATA_FILE = 'server_data.json';
 
 let serverState = {
     maps: [],
     mainMapId: null,
-    weather: 'NONE', // 'NONE', 'RAIN', 'SNOW'
+    weather: 'NONE',
+    environmentColor: 'rgba(0,0,0,0)',
+    speedMultiplier: 1.0,
     users: [
         { username: '213enbüyükbenim', password: '213213', role: 'GM' }
     ]
@@ -30,7 +31,7 @@ if (fs.existsSync(DATA_FILE)) {
         }
         console.log("Kayıtlı diyar verileri başarıyla yüklendi!");
     } catch (err) {
-        console.error("Kayıt dosyası okunurken hata oluştu, sıfırdan başlanıyor:", err);
+        console.error("Kayıt dosyası okunurken hata oluştu:", err);
     }
 }
 
@@ -39,7 +40,6 @@ function saveData() {
 }
 
 let activePlayers = {}; 
-let activeTrades = {}; // Takas oturumları
 
 io.on('connection', (socket) => {
     console.log('Bir ruh bağlantı kurdu. ID:', socket.id);
@@ -55,7 +55,8 @@ io.on('connection', (socket) => {
 
     socket.on('create_user', (newUsername, newPassword) => {
         if (serverState.users.find(u => u.username === newUsername)) {
-            socket.emit('user_create_result', false, 'Bu kullanıcı adı zaten alınmış!'); return;
+            socket.emit('user_create_result', false, 'Bu kullanıcı adı zaten alınmış!');
+            return;
         }
         serverState.users.push({ username: newUsername, password: newPassword, role: 'PLAYER' });
         saveData();
@@ -63,29 +64,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('Bir gezgin diyardan ayrıldı. ID:', socket.id);
         delete activePlayers[socket.id];
-        
-        // Eğer iptal olan takası varsa sil
-        for(let tId in activeTrades) {
-            if(activeTrades[tId].p1 === socket.id || activeTrades[tId].p2 === socket.id) {
-                const other = activeTrades[tId].p1 === socket.id ? activeTrades[tId].p2 : activeTrades[tId].p1;
-                io.to(other).emit('trade_cancelled', "Karşı taraf diyardan ayrıldı.");
-                delete activeTrades[tId];
-            }
-        }
-        io.emit('players_sync', activePlayers); 
+        io.emit('player_hidden', socket.id); 
     });
 
     socket.on('player_update', (playerData) => {
         activePlayers[socket.id] = playerData;
-        // Eğer Ghost modundaysa sadece GM'lere veya kimseye gönderme, ama sistem basit kalsın, kimseye iletmiyoruz
-        if (playerData.isGhost) {
-            // Sadece kendisi haritada ama kimseye gönderilmiyor
-            socket.broadcast.emit('player_hidden', socket.id); 
-        } else {
-            socket.broadcast.emit('player_sync_single', socket.id, playerData);
-        }
+        socket.broadcast.emit('player_sync_single', socket.id, playerData);
     });
 
     socket.on('gm_upload_map', (newMap) => {
@@ -98,16 +83,23 @@ io.on('connection', (socket) => {
     socket.on('gm_update_map_objects', (mapId, objectsData) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
-            map.walls = objectsData.walls;
-            map.poisons = objectsData.poisons;
-            map.tps = objectsData.tps;
-            map.bots = objectsData.bots;
+            map.walls = objectsData.walls || [];
+            map.fires = objectsData.fires || [];
+            map.tps = objectsData.tps || [];
+            map.bots = objectsData.bots || [];
             map.roofs = objectsData.roofs || [];
-            map.notes = objectsData.notes || []; // Notlar
-            map.musicZones = objectsData.musicZones || []; // Müzik Alanları
+            map.notes = objectsData.notes || [];
+            map.musicZones = objectsData.musicZones || [];
             saveData();
             socket.broadcast.emit('map_objects_synced', mapId, objectsData);
         }
+    });
+
+    socket.on('gm_update_universe', (envColor, speedMulti) => {
+        serverState.environmentColor = envColor;
+        serverState.speedMultiplier = speedMulti;
+        saveData();
+        io.emit('universe_synced', envColor, speedMulti);
     });
 
     socket.on('gm_set_weather', (weatherType) => {
@@ -116,13 +108,8 @@ io.on('connection', (socket) => {
         io.emit('weather_sync', weatherType);
     });
 
-    socket.on('gm_teleport_action', (action, targetId, myMapId, myX, myY) => {
-        if (!activePlayers[targetId]) return;
-        if (action === 'goto') {
-            socket.emit('force_teleport', activePlayers[targetId].mapId, activePlayers[targetId].visualX, activePlayers[targetId].visualY);
-        } else if (action === 'pull') {
-            io.to(targetId).emit('force_teleport', myMapId, myX, myY);
-        }
+    socket.on('gm_give_gold', (targetId, amount) => {
+        io.to(targetId).emit('receive_gold', amount);
     });
 
     socket.on('chat_message', (msgData) => {
@@ -134,70 +121,43 @@ io.on('connection', (socket) => {
         io.emit('show_god_message', text);
     });
 
-    socket.on('trade_request', (targetId, myName) => {
-        if(activePlayers[targetId]) {
-            io.to(targetId).emit('trade_request_received', socket.id, myName);
+    socket.on('gm_teleport_action', (action, targetId, mapId, x, y) => {
+        if(action === 'goto') {
+            const target = activePlayers[targetId];
+            if(target) socket.emit('force_teleport', target.mapId, target.visualX, target.visualY);
+        } else if (action === 'pull') {
+            io.to(targetId).emit('force_teleport', mapId, x, y);
         }
     });
 
+    let trades = {};
+    socket.on('trade_request', (targetId, reqName) => { io.to(targetId).emit('trade_request_received', socket.id, reqName); });
     socket.on('trade_accept', (requesterId) => {
-        if(activePlayers[requesterId]) {
-            const tradeId = socket.id + "_" + requesterId;
-            activeTrades[tradeId] = {
-                p1: requesterId, p2: socket.id,
-                p1Items: [], p2Items: [],
-                p1Gold: 0, p2Gold: 0,
-                p1Locked: false, p2Locked: false
-            };
-            io.to(requesterId).emit('trade_started', tradeId, 'p1');
-            io.to(socket.id).emit('trade_started', tradeId, 'p2');
-        }
+        const tradeId = Math.random().toString(36).substr(2, 9);
+        trades[tradeId] = { p1: requesterId, p2: socket.id, state: { p1Items:[], p2Items:[], p1Gold:0, p2Gold:0, p1Locked:false, p2Locked:false } };
+        io.to(requesterId).emit('trade_started', tradeId, 'p1'); io.to(socket.id).emit('trade_started', tradeId, 'p2');
     });
-
-    socket.on('trade_decline', (requesterId) => {
-        io.to(requesterId).emit('trade_cancelled', "Karşı taraf takası reddetti.");
-    });
-
+    socket.on('trade_decline', (requesterId) => { io.to(requesterId).emit('trade_cancelled', "Karşı taraf teklifi reddetti."); });
     socket.on('trade_update_offer', (tradeId, role, items, gold) => {
-        if(activeTrades[tradeId]) {
-            if(role === 'p1') { activeTrades[tradeId].p1Items = items; activeTrades[tradeId].p1Gold = gold; activeTrades[tradeId].p1Locked = false; activeTrades[tradeId].p2Locked = false; }
-            if(role === 'p2') { activeTrades[tradeId].p2Items = items; activeTrades[tradeId].p2Gold = gold; activeTrades[tradeId].p1Locked = false; activeTrades[tradeId].p2Locked = false; }
-            io.to(activeTrades[tradeId].p1).emit('trade_sync', activeTrades[tradeId]);
-            io.to(activeTrades[tradeId].p2).emit('trade_sync', activeTrades[tradeId]);
-        }
+        if(!trades[tradeId]) return; const tr = trades[tradeId];
+        if(role === 'p1') { tr.state.p1Items = items; tr.state.p1Gold = gold; } else { tr.state.p2Items = items; tr.state.p2Gold = gold; }
+        io.to(tr.p1).emit('trade_sync', tr.state); io.to(tr.p2).emit('trade_sync', tr.state);
     });
-
     socket.on('trade_lock', (tradeId, role) => {
-        if(activeTrades[tradeId]) {
-            if(role === 'p1') activeTrades[tradeId].p1Locked = true;
-            if(role === 'p2') activeTrades[tradeId].p2Locked = true;
-            io.to(activeTrades[tradeId].p1).emit('trade_sync', activeTrades[tradeId]);
-            io.to(activeTrades[tradeId].p2).emit('trade_sync', activeTrades[tradeId]);
-        }
+        if(!trades[tradeId]) return; const tr = trades[tradeId];
+        if(role === 'p1') tr.state.p1Locked = true; else tr.state.p2Locked = true;
+        io.to(tr.p1).emit('trade_sync', tr.state); io.to(tr.p2).emit('trade_sync', tr.state);
     });
-
-    socket.on('trade_confirm', (tradeId, role, finalInventory, finalGold) => {
-        // Güvenlik için oyuncular işlem bitince bana son çantalarını yolluyorlar
-        // Gerçek mmo'larda bu sunucu tarafında yapılır, biz şimdilik state'i oyuncudan güvenerek alıyoruz
-        if(activeTrades[tradeId]) {
-            if(role === 'p1') activeTrades[tradeId].p1Confirmed = { inv: finalInventory, gold: finalGold };
-            if(role === 'p2') activeTrades[tradeId].p2Confirmed = { inv: finalInventory, gold: finalGold };
-            
-            if(activeTrades[tradeId].p1Confirmed && activeTrades[tradeId].p2Confirmed) {
-                // İkisi de onayladı, verileri çapraz gönderip işlemi bitir
-                io.to(activeTrades[tradeId].p1).emit('trade_success', activeTrades[tradeId].p1Confirmed.inv, activeTrades[tradeId].p1Confirmed.gold);
-                io.to(activeTrades[tradeId].p2).emit('trade_success', activeTrades[tradeId].p2Confirmed.inv, activeTrades[tradeId].p2Confirmed.gold);
-                delete activeTrades[tradeId];
-            }
-        }
+    socket.on('trade_confirm', (tradeId, role, newInv, newGold) => {
+        if(!trades[tradeId]) return; const tr = trades[tradeId];
+        io.to(socket.id).emit('trade_success', newInv, newGold);
+        if(role === 'p1') tr.p1Confirmed = true; else tr.p2Confirmed = true;
+        if(tr.p1Confirmed && tr.p2Confirmed) delete trades[tradeId];
     });
-
     socket.on('trade_cancel', (tradeId) => {
-        if(activeTrades[tradeId]) {
-            io.to(activeTrades[tradeId].p1).emit('trade_cancelled', "Takas iptal edildi.");
-            io.to(activeTrades[tradeId].p2).emit('trade_cancelled', "Takas iptal edildi.");
-            delete activeTrades[tradeId];
-        }
+        if(!trades[tradeId]) return; const tr = trades[tradeId];
+        io.to(tr.p1).emit('trade_cancelled', "Takas iptal edildi."); io.to(tr.p2).emit('trade_cancelled', "Takas iptal edildi.");
+        delete trades[tradeId];
     });
 });
 
