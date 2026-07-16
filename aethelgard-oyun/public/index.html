@@ -13,6 +13,7 @@
         h1, h2, h3, .cinzel { font-family: 'Cinzel', serif; }
         canvas { display: block; z-index: 0; }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); border-left: 1px solid var(--medieval-border); } ::-webkit-scrollbar-thumb { background: var(--medieval-btn); border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: var(--medieval-gold); }
+        
         .medieval-panel { background: var(--medieval-panel); backdrop-filter: blur(8px); border: 2px solid var(--medieval-border); box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.5); border-radius: 8px; }
         .medieval-btn { background: linear-gradient(to bottom, var(--medieval-btn-hover), var(--medieval-btn)); border: 1px solid var(--medieval-gold); color: #fff; text-shadow: 1px 1px 2px black; box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: all 0.2s; cursor: pointer; }
         .medieval-btn:hover { background: linear-gradient(to bottom, var(--medieval-gold), var(--medieval-btn-hover)); transform: translateY(-1px); }
@@ -134,7 +135,17 @@
 
         <div id="interaction-prompt" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 pointer-events-auto hidden"><button onclick="triggerInteraction()" class="medieval-btn px-6 py-3 rounded-full font-bold cinzel text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse">[E] Etkileşim</button></div>
 
-        <div id="chat-container" class="hidden p-4 w-[28rem] pointer-events-auto self-start"><div class="medieval-panel h-64 flex flex-col"><div id="chat-messages" class="flex-1 p-3 overflow-y-auto flex flex-col gap-2 text-sm font-lora"><div class="text-center text-[--medieval-gold] text-xs cinzel mb-2 opacity-50">- Sohbet -</div></div><form id="chat-form" class="border-t border-[--medieval-border] p-2 flex gap-2 bg-black/40"><input type="text" id="chat-input" class="flex-1 medieval-input rounded px-3 py-2 text-sm" placeholder="Sözlerini fısılda... (Kapat: ESC)" autocomplete="off"><button type="submit" class="medieval-btn px-4 rounded text-xs cinzel font-bold md:hidden">Gönder</button></form></div></div>
+        <div id="chat-container" class="hidden p-4 w-[28rem] pointer-events-auto self-start">
+            <div class="medieval-panel h-64 flex flex-col relative">
+                <div id="chat-messages" class="flex-1 p-3 overflow-y-auto flex flex-col gap-2 text-sm font-lora"><div class="text-center text-[--medieval-gold] text-xs cinzel mb-2 opacity-50">- Sohbet Başlangıcı -<br>(/s bağır, /w isim fısılda, /l kısık, /me hareket)</div></div>
+                <div id="whisper-suggestions" class="hidden absolute bottom-full left-0 mb-1 w-48 bg-black/90 border border-[--medieval-border] rounded p-1 flex flex-col gap-1 z-50 shadow-lg"></div>
+                
+                <!-- BURASI DÜZELTİLDİ: form etiketi geri eklendi! -->
+                <form id="chat-form" class="border-t border-[--medieval-border] p-2 flex gap-2 bg-black/40">
+                    <input type="text" id="chat-input" class="flex-1 medieval-input rounded px-3 py-2 text-sm" placeholder="Sözlerini fısılda... (Kapat: ESC)" autocomplete="off">
+                </form>
+            </div>
+        </div>
         <div id="chat-hint" class="absolute bottom-4 left-4 pointer-events-auto"><button onclick="toggleChat()" class="medieval-btn px-4 py-2 rounded text-sm cinzel font-bold shadow-lg">💬 Sohbet [ENTER]</button></div>
         
         <div id="joystick-zone"><div id="joystick-knob"></div></div>
@@ -148,12 +159,11 @@
         
         <div id="user-create-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-8 max-w-sm w-full text-center border-[#a855f7]"><h3 class="text-2xl text-[#a855f7] cinzel mb-2">Yeni Oyuncu Mührü</h3><p class="text-xs opacity-70 mb-6 italic text-[--medieval-text]">Sadece Kadim Ustalar yeni bir ruhu diyara davet edebilir.</p><div class="flex flex-col gap-4 mb-6"><input type="text" id="new-user-name" class="medieval-input w-full p-3 rounded text-center" placeholder="Kullanıcı Adı"><input type="text" id="new-user-pass" class="medieval-input w-full p-3 rounded text-center" placeholder="Geçiş Şifresi"></div><div class="flex gap-3"><button onclick="document.getElementById('user-create-modal').classList.add('hidden')" class="flex-1 text-red-400 font-bold cinzel text-sm">Vazgeç</button><button onclick="createPlayerAccount()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(250deg);">Ruhu Yarat</button></div></div></div>
         
-        <!-- GM Ayarları (Zaman, Renk vs) -->
         <div id="gm-settings-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
             <div class="medieval-panel p-6 max-w-md w-full border-[#3b82f6] max-h-[90vh] overflow-y-auto">
                 <h3 class="text-2xl text-[#3b82f6] cinzel mb-4 text-center">Evren Ayarları</h3>
                 <div class="flex flex-col gap-4 bg-black/40 p-4 rounded mb-4">
-                    <div><label class="block text-sm text-[--medieval-gold] mb-1 cinzel">Atmosfer Filtresi</label><select id="gm-env-color" class="w-full medieval-input rounded px-3 py-2 text-sm" onchange="updateUniverseSettings()"><option value="rgba(0,0,0,0)">Gündüz / Normal</option><option value="rgba(0, 10, 30, 0.45)">Gece (Karanlık Mavi)</option><option value="rgba(110, 40, 0, 0.35)">Alacakaranlık / Gün Batımı</option><option value="rgba(0, 0, 0, 0.75)">Zindan (Koyu Karanlık)</option><option value="rgba(80, 0, 0, 0.4)">Kanlı Ay (Kızıl)</option><option value="rgba(34, 197, 94, 0.25)">Toksik Sis (Yeşil)</option></select></div>
+                    <div><label class="block text-sm text-[--medieval-gold] mb-1 cinzel">Zorunlu Filtre (Sıfırlamak için Normal'i seçin)</label><select id="gm-env-color" class="w-full medieval-input rounded px-3 py-2 text-sm" onchange="updateUniverseSettings()"><option value="rgba(0,0,0,0)">Gündüz / Saat Ayarına Bırak</option><option value="rgba(0, 10, 30, 0.45)">Gece (Karanlık Mavi)</option><option value="rgba(110, 40, 0, 0.35)">Alacakaranlık / Gün Batımı</option><option value="rgba(0, 0, 0, 0.75)">Zindan (Koyu Karanlık)</option><option value="rgba(80, 0, 0, 0.4)">Kanlı Ay (Kızıl)</option><option value="rgba(34, 197, 94, 0.25)">Toksik Sis (Yeşil)</option></select></div>
                     <div><label class="block text-sm text-[--medieval-gold] mb-1 cinzel">Oyuncu Yürüme Hızı Çarpanı (<span id="speed-display">1.0</span>x)</label><input type="range" id="gm-player-speed-input" min="0.5" max="3.0" step="0.1" value="1.0" class="w-full" oninput="document.getElementById('speed-display').innerText=this.value; updateUniverseSettings();"></div>
                     <div class="border-t border-[--medieval-border] pt-3 mt-1"><h4 class="text-xs text-[--medieval-gold] cinzel mb-2">Zaman Yönetimi</h4>
                         <div class="flex gap-2 mb-2"><div class="flex-1"><label class="block text-[10px] text-gray-400">Saat</label><input type="number" id="gm-time-hour" min="0" max="23" class="w-full medieval-input rounded px-2 py-1 text-xs text-center" onchange="updateUniverseSettings()"></div><div class="flex-1"><label class="block text-[10px] text-gray-400">Dakika</label><input type="number" id="gm-time-minute" min="0" max="59" class="w-full medieval-input rounded px-2 py-1 text-xs text-center" onchange="updateUniverseSettings()"></div></div>
@@ -169,7 +179,6 @@
             <div class="medieval-panel p-6 max-w-sm w-full border-[#fcd34d]"><h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center">Hedef Oyuncu Bulunamadı</h3><p class="text-sm opacity-80 text-center mb-4">Altın sistemi şu anda yakındaki hedefe tıklandığında çalışacak şekilde ayarlanıyor. Gelecek güncellemede tamamlanacaktır.</p><button onclick="document.getElementById('gm-gold-modal').classList.add('hidden')" class="w-full mt-4 text-red-400 text-sm font-bold cinzel">Kapat</button></div>
         </div>
 
-        <!-- Bot Ekranı Tamamı -->
         <div id="bot-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
             <div class="medieval-panel p-6 max-w-xl w-full border-[#059669] max-h-[90vh] overflow-y-auto">
                 <h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center" id="bot-modal-title">Gezgin / NPC Kaydı</h3>
@@ -181,7 +190,6 @@
             </div>
         </div>
 
-        <!-- Standart Modallar -->
         <div id="crop-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto"><div class="medieval-panel p-6 max-w-sm w-full text-center flex flex-col items-center"><h3 class="text-xl text-[--medieval-gold] cinzel mb-2">Portreyi Ayarla</h3><div class="relative w-48 h-48 border-2 border-[--medieval-gold] rounded-full overflow-hidden mb-4 bg-black cursor-move" id="crop-area"><canvas id="crop-canvas" width="192" height="192" class="absolute top-0 left-0 w-full h-full"></canvas></div><div class="flex gap-3 w-full"><button onclick="cancelCrop()" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">İptal</button><button onclick="saveCrop()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm">Onayla & Yükle</button></div></div></div>
         <div id="custom-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-8 max-w-sm w-full text-center"><h3 id="modal-title" class="text-2xl text-[--medieval-gold] cinzel mb-3">Başlık</h3><p id="modal-text" class="text-[--medieval-text] mb-8 text-sm italic">Mesaj...</p><button onclick="closeModal()" class="medieval-btn px-8 py-2 rounded font-bold cinzel">Anladım</button></div></div>
         <div id="god-message-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-6 max-w-md w-full border-[#fcd34d]"><h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center">Diyara Seslen</h3><input type="text" id="god-message-input" class="medieval-input w-full p-3 rounded mb-4 text-center text-lg"><div class="flex gap-3 w-full"><button onclick="document.getElementById('god-message-modal').classList.add('hidden')" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">Vazgeç</button><button onclick="sendGodMessage()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(45deg);">Gönder</button></div></div></div>
@@ -217,12 +225,12 @@
         let editStartX = 0, editStartY = 0; let editCurrentX = 0, editCurrentY = 0;
         let draggedObj = null; let draggedObjType = null; let dragOffX = 0, dragOffY = 0;
         let editingPathBot = null; 
-        let tempRoofPoints = []; // Nokta nokta çatı çizimi için
+        let tempRoofPoints = []; 
         let tempTPRect = null;
         let tempBotData = { isNew: true, ref: null, image: null, shop: [] }; let tempShopItemImageBase64 = null; 
 
         let screenShake = 0; const weatherParticles = []; 
-        let lastPlayerEmitTime = 0; // LAG ÖNLEYİCİ ZAMANLAYICI
+        let lastPlayerEmitTime = 0; let lastEmitX = -9999; let lastEmitY = -9999; 
 
         function generateId() { return Math.random().toString(36).substr(2, 9); }
         function showModal(title, text) { document.getElementById('modal-title').innerText = title; document.getElementById('modal-text').innerText = text; document.getElementById('custom-modal').classList.remove('hidden'); }
@@ -254,7 +262,6 @@
         socket.on('world_maps_updated', (maps, mainId) => { MemoryStore.maps = maps; MemoryStore.mainMapId = mainId; if (MemoryStore.role === 'GM') renderGMMapList(); else if (MemoryStore.role === 'PLAYER') renderMapSelectionList(); });
         
         socket.on('players_sync', (activePlayersObj) => { 
-            // LAG GİDERİCİ: Hemen ışınlamak yerine hedef pozisyonu belirle (Interpolation)
             for (let id in activePlayersObj) {
                 if (id === socket.id) continue;
                 if (!OtherPlayers[id]) OtherPlayers[id] = activePlayersObj[id];
@@ -266,11 +273,9 @@
                     OtherPlayers[id].image = activePlayersObj[id].image;
                 }
             }
-            // Çıkanları sil
             for (let id in OtherPlayers) { if (!activePlayersObj[id]) delete OtherPlayers[id]; }
         });
 
-        socket.on('new_chat_message', (msgData) => { const c = document.getElementById('chat-messages'); c.innerHTML += `<div><span class="font-bold text-[--medieval-gold]">[${msgData.name}]:</span> <span class="text-[--medieval-text] opacity-90">${msgData.text}</span></div>`; c.scrollTop = c.scrollHeight; if(OtherPlayers[msgData.socketId]) OtherPlayers[msgData.socketId].activeBubble = { text: msgData.text, timer: 180 }; });
         socket.on('show_god_message', (text) => { MemoryStore.announcement = { text: text, timer: 300 }; document.getElementById('god-message-text').innerText = text; const cont = document.getElementById('god-message-container'); cont.classList.remove('hidden'); setTimeout(() => cont.classList.remove('opacity-0'), 10); });
         socket.on('weather_sync', (weatherType) => { MemoryStore.weather = weatherType; buildWeatherParticles(); });
         socket.on('universe_synced', (envColor, speedMulti, timeData) => { MemoryStore.environmentColor = envColor; MemoryStore.speedMultiplier = speedMulti; MemoryStore.worldTime = timeData; });
@@ -301,14 +306,13 @@
         window.addEventListener('keydown', (e) => {
             if (MemoryStore.gameState === 'GAME') {
                 const chatInput = document.getElementById('chat-input');
-                if (e.key === 'Enter') { if (document.activeElement !== chatInput) toggleChat(); } else if (e.key === 'Escape') { if(tempRoofPoints.length > 0) tempRoofPoints = []; else { chatInput.blur(); toggleChat(); } } else if (e.key.toLowerCase() === 'e' && document.activeElement !== chatInput && MemoryStore.role === 'PLAYER') { triggerInteraction(); }
+                if (e.key === 'Enter') { if (document.activeElement !== chatInput) toggleChat(); } else if (e.key === 'Escape') { if(tempRoofPoints.length > 0) tempRoofPoints = []; else { chatInput.blur(); toggleChat(); document.getElementById('whisper-suggestions').classList.add('hidden'); } } else if (e.key.toLowerCase() === 'e' && document.activeElement !== chatInput && MemoryStore.role === 'PLAYER') { triggerInteraction(); }
             }
             if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') keys[e.key.toLowerCase()] = true;
         });
         window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
         // KARAKTER SİSTEMİ
-        let cropImgObj = new Image(); let cropX = 0, cropY = 0, isCropping = false, lastMouseX, lastMouseY; const cropCanvas = document.getElementById('crop-canvas'); const cropCtx = cropCanvas.getContext('2d');
         function openCropModal(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { cropImgObj.onload = () => { cropX = 0; cropY = 0; document.getElementById('crop-modal').classList.remove('hidden'); drawCropArea(); }; cropImgObj.src = e.target.result; }; reader.readAsDataURL(file); } event.target.value = ''; }
         function drawCropArea() { cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height); const scale = Math.max(cropCanvas.width / cropImgObj.width, cropCanvas.height / cropImgObj.height); const w = cropImgObj.width * scale; const h = cropImgObj.height * scale; cropCtx.drawImage(cropImgObj, (cropCanvas.width - w)/2 + cropX, (cropCanvas.height - h)/2 + cropY, w, h); }
         const cropArea = document.getElementById('crop-area'); cropArea.addEventListener('mousedown', (e) => { isCropping = true; lastMouseX = e.clientX; lastMouseY = e.clientY; }); window.addEventListener('mousemove', (e) => { if(isCropping) { cropX += e.clientX - lastMouseX; cropY += e.clientY - lastMouseY; lastMouseX = e.clientX; lastMouseY = e.clientY; drawCropArea(); } }); window.addEventListener('mouseup', () => isCropping = false);
@@ -371,7 +375,6 @@
                 if (editorTool === 'PATH') { let hit = currentLoadedMapData.bots.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (hit) { editingPathBot = hit; editingPathBot.path = []; editingPathBot.pathIndex = 0; } else if (editingPathBot) { if(!editingPathBot.path) editingPathBot.path = []; editingPathBot.path.push({x: pos.x, y: pos.y}); syncMapObjectsToServer(); } return; }
                 if (editorTool === 'WALL_ROOF') {
                     if (tempRoofPoints.length > 2 && Math.hypot(pos.x - tempRoofPoints[0].x, pos.y - tempRoofPoints[0].y) < 20) {
-                        // Poligonu Kapat ve Çatıyı Oluştur
                         if (!currentLoadedMapData.roofs) currentLoadedMapData.roofs = [];
                         currentLoadedMapData.roofs.push({ points: [...tempRoofPoints] }); tempRoofPoints = []; syncMapObjectsToServer();
                     } else { tempRoofPoints.push({x: pos.x, y: pos.y}); }
@@ -423,7 +426,7 @@
             }
         });
 
-        // Poligon İçinde mi Testi (Nokta Nokta Çatı İçin)
+        // Çatı Nokta Algılama
         function isPointInPoly(x, y, poly) {
             let inside = false;
             for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -446,11 +449,109 @@
         function cancelBotCreation() { document.getElementById('bot-modal').classList.add('hidden'); }
         function saveBotCreation() { const name = document.getElementById('bot-name-input').value.trim() || "Gezgin"; const rad = parseInt(document.getElementById('bot-size-input').value) || 20; const greet = document.getElementById('bot-greeting-input').value.trim(); const isM = document.getElementById('bot-merchant-check').checked; const moveType = document.getElementById('bot-move-type').value; const hp = parseInt(document.getElementById('bot-hp-input').value) || 100; const finalShop = JSON.parse(JSON.stringify(tempBotData.shop)); if (tempBotData.isNew) { if(!currentLoadedMapData.bots) currentLoadedMapData.bots=[]; currentLoadedMapData.bots.push({ id: generateId(), name, image: tempBotData.image, x: tempBotData.ref.x, y: tempBotData.ref.y, spawnX: tempBotData.ref.x, spawnY: tempBotData.ref.y, radius: rad, greeting: greet, isMerchant: isM, moveType: moveType, path: [], pathIndex: 0, maxHp: hp, hp: hp, shop: finalShop }); } else { Object.assign(tempBotData.ref, { name, image: tempBotData.image, radius: rad, greeting: greet, isMerchant: isM, moveType: moveType, maxHp: hp, hp: Math.min(tempBotData.ref.hp || hp, hp), shop: finalShop }); } if(tempBotData.image) getCachedImage(tempBotData.image); document.getElementById('bot-modal').classList.add('hidden'); syncMapObjectsToServer(); }
 
-        document.getElementById('chat-form').addEventListener('submit', sendChatMessage);
-        function sendChatMessage(e) { e.preventDefault(); sendRawChatMessage(document.getElementById('chat-input').value); }
-        function sendRawChatMessage(text) { text = text.trim(); if (!text) return; socket.emit('chat_message', { name: MemoryStore.player.name || 'GM', text: text, socketId: socket.id }); document.getElementById('chat-input').value = ''; if(MemoryStore.role === 'PLAYER') MemoryStore.player.activeBubble = { text: text, timer: 180 }; document.getElementById('chat-input').blur(); toggleChat(); }
+        // --- GELİŞMİŞ CHAT SİSTEMİ (MENZİL VE FISILDAMA) ---
+        const chatInput = document.getElementById('chat-input');
+        chatInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            const sugg = document.getElementById('whisper-suggestions');
+            if (val.startsWith('/w ')) {
+                const typedName = val.substring(3).toLowerCase();
+                sugg.innerHTML = ''; let count = 0; const p = MemoryStore.player;
+                for(let id in OtherPlayers) {
+                    const op = OtherPlayers[id];
+                    if (op.mapId !== p.currentMapId) continue;
+                    if (Math.hypot(p.visualX - op.visualX, p.visualY - op.visualY) > 200) continue; 
+                    if (op.name.toLowerCase().includes(typedName)) {
+                        sugg.innerHTML += `<div class="cursor-pointer hover:bg-[--medieval-btn] px-2 py-1 text-sm font-bold text-[--medieval-gold]" onclick="fillWhisper('${op.name}')">${op.name}</div>`;
+                        count++;
+                    }
+                }
+                if(count > 0) sugg.classList.remove('hidden'); else sugg.classList.add('hidden');
+            } else { sugg.classList.add('hidden'); }
+        });
 
-        function triggerInteraction() { if(!nearbyInteractable) return; if(nearbyInteractable.type === 'TP') { const c = document.getElementById('tp-use-options'); c.innerHTML = ''; nearbyInteractable.ref.targets.forEach(tid => { const m = MemoryStore.maps.find(x => x.id === tid); if(m) c.innerHTML += `<button onclick="joinMap('${m.id}', false);document.getElementById('tp-use-modal').classList.add('hidden')" class="medieval-btn w-full py-2 rounded text-sm cinzel font-bold">${m.name} Diyarına Geç</button>`; }); document.getElementById('tp-use-modal').classList.remove('hidden'); } else if (nearbyInteractable.type === 'BOT') { const b = nearbyInteractable.ref; if(b.greeting) b.activeBubble = { text: b.greeting, timer: 180 }; if(b.isMerchant) { document.getElementById('shop-title').innerText = b.name; const sc = document.getElementById('shop-items-container'); sc.innerHTML = ''; b.shop.forEach((it, idx) => { sc.innerHTML += `<div class="bg-black/60 p-3 rounded border border-[--medieval-border] flex flex-col items-center justify-between gap-2 text-center"><img src="${it.image || 'https://placehold.co/40x40/222/555?text=?'}" class="w-12 h-12 object-cover border border-[#d4af37]"><span class="text-xs font-bold text-[--medieval-text] w-full truncate">${it.name}</span><span class="text-[#fcd34d] font-bold text-sm">${it.price} 💰</span><button onclick="buyItem('${b.id}', ${idx})" class="medieval-btn px-4 py-1 rounded text-xs cinzel w-full">Satın Al</button></div>`; }); document.getElementById('shop-modal').classList.remove('hidden'); } } }
+        function fillWhisper(name) {
+            chatInput.value = `/w ${name} `; chatInput.focus();
+            document.getElementById('whisper-suggestions').classList.add('hidden');
+        }
+
+        document.getElementById('chat-form').addEventListener('submit', sendChatMessage);
+        function sendChatMessage(e) { e.preventDefault(); sendRawChatMessage(chatInput.value); }
+        
+        function sendRawChatMessage(text) { 
+            text = text.trim(); if (!text) return; 
+            
+            let type = 'SAY'; let target = null; let cleanText = text;
+            if (text.startsWith('/s ')) { type = 'SCREAM'; cleanText = text.substring(3); }
+            else if (text.startsWith('/l ')) { type = 'LOW'; cleanText = text.substring(3); }
+            else if (text.startsWith('/me ')) { type = 'EMOTE'; cleanText = text.substring(4); }
+            else if (text.startsWith('/w ')) {
+                type = 'WHISPER'; const parts = text.split(' ');
+                if (parts.length > 2) { target = parts[1]; cleanText = parts.slice(2).join(' '); } 
+                else { showModal("Hata", "/w isim mesaj  şeklinde yazmalısın."); return; }
+            }
+
+            const msgObj = {
+                name: MemoryStore.player.name || 'GM', text: cleanText, type: type, target: target,
+                x: MemoryStore.player.visualX, y: MemoryStore.player.visualY, mapId: MemoryStore.player.currentMapId
+            };
+
+            socket.emit('chat_message', msgObj);
+            
+            msgObj.isLocal = true;
+            displayChatMessage(msgObj);
+
+            chatInput.value = ''; document.getElementById('whisper-suggestions').classList.add('hidden');
+            chatInput.blur(); toggleChat(); 
+        }
+
+        socket.on('new_chat_message', (msg) => {
+            if (msg.socketId === socket.id) return;
+            displayChatMessage(msg);
+        });
+
+        function displayChatMessage(msg) {
+            const p = MemoryStore.player;
+            if (MemoryStore.role !== 'GM' && msg.mapId !== p.currentMapId) return;
+
+            let distance = Math.hypot(p.visualX - msg.x, p.visualY - msg.y);
+            if (msg.isLocal) distance = 0; 
+
+            if (MemoryStore.role !== 'GM') {
+                if (msg.type === 'SCREAM' && distance > 1000) return;
+                if (msg.type === 'SAY' && distance > 400) return;
+                if (msg.type === 'EMOTE' && distance > 400) return;
+                if (msg.type === 'LOW' && distance > 100) return;
+                if (msg.type === 'WHISPER' && distance > 200) return;
+
+                if (msg.type === 'WHISPER' && !msg.isLocal) {
+                    if (msg.target !== p.name && msg.name !== p.name) return; 
+                }
+            }
+
+            let html = ''; let bubbleText = msg.text;
+            if (msg.type === 'SCREAM') {
+                html = `<div><span class="font-bold text-red-500">[${msg.name}] (Bağırır):</span> <span class="text-red-300 font-bold uppercase">${msg.text}</span></div>`;
+                bubbleText = msg.text.toUpperCase();
+            } else if (msg.type === 'LOW') {
+                html = `<div><span class="font-bold text-gray-500">[${msg.name}] (Fısıltı):</span> <span class="text-gray-400 text-xs">${msg.text}</span></div>`;
+            } else if (msg.type === 'WHISPER') {
+                html = `<div><span class="font-bold text-yellow-600">[${msg.name}] (Sana Fısıldar):</span> <span class="text-yellow-400 italic">${msg.text}</span></div>`;
+                if(msg.isLocal) html = `<div><span class="font-bold text-yellow-700">[${msg.target}] kişisine:</span> <span class="text-yellow-500 italic">${msg.text}</span></div>`;
+            } else if (msg.type === 'EMOTE') {
+                html = `<div><span class="text-purple-400 italic font-bold">* ${msg.name} ${msg.text} *</span></div>`;
+                bubbleText = `* ${msg.text} *`;
+            } else {
+                html = `<div><span class="font-bold text-[--medieval-gold]">[${msg.name}]:</span> <span class="text-[--medieval-text] opacity-90">${msg.text}</span></div>`;
+            }
+
+            const c = document.getElementById('chat-messages'); c.innerHTML += html; c.scrollTop = c.scrollHeight;
+
+            if (msg.isLocal) { p.activeBubble = { text: bubbleText, timer: 180, type: msg.type }; } 
+            else { if (OtherPlayers[msg.socketId]) { OtherPlayers[msg.socketId].activeBubble = { text: bubbleText, timer: 180, type: msg.type }; } }
+        }
+
+        function triggerInteraction() { if(!nearbyInteractable) return; if(nearbyInteractable.type === 'TP') { const c = document.getElementById('tp-use-options'); c.innerHTML = ''; nearbyInteractable.ref.targets.forEach(tid => { const m = MemoryStore.maps.find(x => x.id === tid); if(m) c.innerHTML += `<button onclick="joinMap('${m.id}', false);document.getElementById('tp-use-modal').classList.add('hidden')" class="medieval-btn w-full py-2 rounded text-sm cinzel font-bold">${m.name} Diyarına Geç</button>`; }); document.getElementById('tp-use-modal').classList.remove('hidden'); } else if (nearbyInteractable.type === 'BOT') { const b = nearbyInteractable.ref; if(b.greeting) b.activeBubble = { text: b.greeting, timer: 180, type: 'SAY' }; if(b.isMerchant) { document.getElementById('shop-title').innerText = b.name; const sc = document.getElementById('shop-items-container'); sc.innerHTML = ''; b.shop.forEach((it, idx) => { sc.innerHTML += `<div class="bg-black/60 p-3 rounded border border-[--medieval-border] flex flex-col items-center justify-between gap-2 text-center"><img src="${it.image || 'https://placehold.co/40x40/222/555?text=?'}" class="w-12 h-12 object-cover border border-[#d4af37]"><span class="text-xs font-bold text-[--medieval-text] w-full truncate">${it.name}</span><span class="text-[#fcd34d] font-bold text-sm">${it.price} 💰</span><button onclick="buyItem('${b.id}', ${idx})" class="medieval-btn px-4 py-1 rounded text-xs cinzel w-full">Satın Al</button></div>`; }); document.getElementById('shop-modal').classList.remove('hidden'); } } }
         function buyItem(botId, itemIndex) { const bot = currentLoadedMapData.bots.find(b => b.id === botId); if(!bot || !bot.shop[itemIndex]) return; const item = bot.shop[itemIndex]; if(MemoryStore.player.gold >= item.price) { MemoryStore.player.gold -= item.price; updatePlayerUI(); MemoryStore.player.inventory.push({...item}); sendRawChatMessage(`*${item.name} satın aldı.*`); } else { showModal("Yetersiz Altın", "Bunu alacak kadar altının yok."); } }
 
         function checkCollision(x, y, radius) { 
@@ -464,19 +565,7 @@
             } return false; 
         }
 
-        function checkPlayerCollision(x, y, radius) {
-            for (let id in OtherPlayers) {
-                if (id === socket.id) continue;
-                let op = OtherPlayers[id];
-                if (op.mapId === MemoryStore.player.currentMapId) { if (Math.hypot(x - op.visualX, y - op.visualY) < radius + op.size) return true; }
-            } return false;
-        }
-
-        function getDynamicTimeFilter() {
-            const hour = MemoryStore.worldTime.hour;
-            if (hour >= 20 || hour < 5) return "rgba(0, 10, 30, 0.55)"; else if (hour === 18 || hour === 19) return "rgba(110, 40, 0, 0.3)"; else if (hour === 5 || hour === 6) return "rgba(0, 10, 30, 0.25)"; return null;
-        }
-
+        // --- UPDATE FİZİK VE AĞ OPTİMİZASYONU ---
         function updateGame() {
             const wt = MemoryStore.worldTime;
             if (wt.timeFlowSpeed > 0) {
@@ -490,8 +579,9 @@
                 const p = MemoryStore.player; let nextX = p.x; let nextY = p.y; let actualSpeed = p.baseSpeed * MemoryStore.speedMultiplier;
                 if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') { if (keys['w'] || keys['arrowup']) nextY -= actualSpeed; if (keys['s'] || keys['arrowdown']) nextY += actualSpeed; if (keys['a'] || keys['arrowleft']) nextX -= actualSpeed; if (keys['d'] || keys['arrowright']) nextX += actualSpeed; }
                 
-                if (!checkCollision(nextX, p.y, p.size) && !checkPlayerCollision(nextX, p.y, p.size)) p.x = nextX; 
-                if (!checkCollision(p.x, nextY, p.size) && !checkPlayerCollision(p.x, nextY, p.size)) p.y = nextY;
+                if (!checkCollision(nextX, p.y, p.size)) p.x = nextX; 
+                if (!checkCollision(p.x, nextY, p.size)) p.y = nextY;
+                
                 p.visualX += (p.x - p.visualX) * 0.25; p.visualY += (p.y - p.visualY) * 0.25;
 
                 const scaleX = canvas.width / currentLoadedMapData.width; const scaleY = canvas.height / currentLoadedMapData.height; mapScaleFactor = Math.max(1, scaleX, scaleY); const targetCamX = p.visualX * mapScaleFactor - canvas.width / 2; const targetCamY = p.visualY * mapScaleFactor - canvas.height / 2; camera.x += (targetCamX - camera.x) * 0.1; camera.y += (targetCamY - camera.y) * 0.1; const maxCamX = Math.max(0, currentLoadedMapData.width * mapScaleFactor - canvas.width); const maxCamY = Math.max(0, currentLoadedMapData.height * mapScaleFactor - canvas.height); camera.x = Math.max(0, Math.min(camera.x, maxCamX)); camera.y = Math.max(0, Math.min(camera.y, maxCamY));
@@ -503,26 +593,27 @@
                 
                 let poisoned = false; for(let ps of (currentLoadedMapData.poisons||[])) { if (p.x >= ps.x && p.x <= ps.x + ps.w && p.y >= ps.y && p.y <= ps.y + ps.h) { poisoned = true; p.hp -= 0.15; break; } } if (!poisoned && p.hp < p.maxHp) p.hp += 0.05; p.hp = Math.max(0, Math.min(p.maxHp, p.hp)); 
 
-                // LAG GİDERİCİ: Hareketi saniyede sadece 10 kez (100ms) gönder.
+                // --- LAG ÖNLEYİCİ AĞ GÜNCELLEMESİ ---
                 const now = Date.now();
-                if (now - lastPlayerEmitTime > 100) {
-                    socket.emit('player_update', { mapId: p.currentMapId, visualX: p.visualX, visualY: p.visualY, size: p.size, name: p.name, image: p.image });
-                    lastPlayerEmitTime = now;
+                const distMoved = Math.hypot(p.visualX - lastEmitX, p.visualY - lastEmitY);
+                if (distMoved > 2 || now - lastPlayerEmitTime > 1000) { 
+                    if (now - lastPlayerEmitTime > 66) { 
+                        socket.emit('player_update', { mapId: p.currentMapId, visualX: p.visualX, visualY: p.visualY, size: p.size, name: p.name, image: p.image });
+                        lastEmitX = p.visualX; lastEmitY = p.visualY; lastPlayerEmitTime = now;
+                    }
                 }
             }
 
-            // DİĞER OYUNCULARI YUMUŞAK HAREKET ETTİR (INTERPOLATION)
             for (let id in OtherPlayers) {
                 let op = OtherPlayers[id];
                 if (op.targetX !== undefined && op.targetY !== undefined) {
                     if (op.visualX === undefined) op.visualX = op.targetX;
                     if (op.visualY === undefined) op.visualY = op.targetY;
-                    op.visualX += (op.targetX - op.visualX) * 0.15;
-                    op.visualY += (op.targetY - op.visualY) * 0.15;
+                    op.visualX += (op.targetX - op.visualX) * 0.3; 
+                    op.visualY += (op.targetY - op.visualY) * 0.3;
                 }
             }
             
-            // BOT HAREKETİ (Lag yaratmaması için sunucuya kaydetmiyoruz, sadece görsel geziyorlar)
             if (currentLoadedMapData) {
                 for (let b of (currentLoadedMapData.bots||[])) {
                     let nextBX = b.x; let nextBY = b.y;
@@ -537,7 +628,56 @@
             if (MemoryStore.role === 'PLAYER') updatePlayerUI();
         }
 
-        function drawChatBubble(x, y, text, alpha) { ctx.save(); ctx.font = 'italic 14px Lora'; const w = ctx.measureText(text).width + 24; const h = 30; ctx.translate(x, y - 55); ctx.fillStyle = `rgba(20, 15, 10, ${alpha * 0.9})`; ctx.strokeStyle = `rgba(212, 175, 55, ${alpha})`; ctx.lineWidth = 2; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-w/2, -h, w, h, 8); else ctx.rect(-w/2, -h, w, h); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.fill(); ctx.stroke(); ctx.fillStyle = `rgba(230, 213, 195, ${alpha})`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 0, -h/2); ctx.restore(); }
+        function getDynamicTimeFilter() {
+            const wt = MemoryStore.worldTime;
+            const totalMinutes = wt.hour * 60 + wt.minute;
+
+            const colorStops = [
+                { m: 0, r: 0, g: 5, b: 20, a: 0.85 },    
+                { m: 300, r: 0, g: 5, b: 20, a: 0.85 },  
+                { m: 420, r: 255, g: 100, b: 0, a: 0.3 },
+                { m: 480, r: 0, g: 0, b: 0, a: 0.0 },    
+                { m: 1080, r: 0, g: 0, b: 0, a: 0.0 },   
+                { m: 1170, r: 150, g: 50, b: 0, a: 0.4 },
+                { m: 1260, r: 0, g: 5, b: 20, a: 0.85 }, 
+                { m: 1440, r: 0, g: 5, b: 20, a: 0.85 }  
+            ];
+
+            let start = colorStops[0]; let end = colorStops[1];
+            for(let i=0; i<colorStops.length-1; i++) {
+                if(totalMinutes >= colorStops[i].m && totalMinutes <= colorStops[i+1].m) {
+                    start = colorStops[i]; end = colorStops[i+1]; break;
+                }
+            }
+
+            const range = end.m - start.m;
+            const progress = range === 0 ? 0 : (totalMinutes - start.m) / range;
+            const r = start.r + (end.r - start.r) * progress;
+            const g = start.g + (end.g - start.g) * progress;
+            const b = start.b + (end.b - start.b) * progress;
+            const a = start.a + (end.a - start.a) * progress;
+
+            if (a <= 0.01) return "rgba(0,0,0,0)";
+            return `rgba(${Math.floor(r)}, ${Math.floor(g)}, ${Math.floor(b)}, ${a})`;
+        }
+
+        function drawChatBubble(x, y, text, alpha, type = 'SAY') {
+            ctx.save(); ctx.font = (type === 'WHISPER' || type === 'EMOTE') ? 'italic bold 14px Lora' : '14px Lora';
+            const w = ctx.measureText(text).width + 24; const h = 30; ctx.translate(x, y - 55);
+
+            let bgCol = `rgba(20, 15, 10, ${alpha * 0.9})`; let borderCol = `rgba(212, 175, 55, ${alpha})`; let textCol = `rgba(230, 213, 195, ${alpha})`;
+            if (type === 'SCREAM') { borderCol = `rgba(220, 38, 38, ${alpha})`; textCol = `rgba(252, 165, 165, ${alpha})`; }
+            else if (type === 'WHISPER') { borderCol = `rgba(202, 138, 4, ${alpha})`; textCol = `rgba(250, 204, 21, ${alpha})`; }
+            else if (type === 'EMOTE') { borderCol = `rgba(168, 85, 247, ${alpha})`; textCol = `rgba(216, 180, 254, ${alpha})`; bgCol = `rgba(20, 10, 30, ${alpha * 0.9})`; }
+            else if (type === 'LOW') { borderCol = `rgba(156, 163, 175, ${alpha})`; textCol = `rgba(156, 163, 175, ${alpha})`; ctx.scale(0.8, 0.8); }
+
+            ctx.fillStyle = bgCol; ctx.strokeStyle = borderCol; ctx.lineWidth = 2;
+            ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-w/2, -h, w, h, 8); else ctx.rect(-w/2, -h, w, h); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = textCol; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 0, -h/2);
+            ctx.restore();
+        }
+
         function drawCharacter(x, y, radius, name, imageSource, outlineColor) { ctx.save(); ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.closePath(); ctx.fillStyle = '#111'; ctx.fill(); ctx.clip(); if (imageSource) { const img = getCachedImage(imageSource); if(img && img.complete) ctx.drawImage(img, x - radius, y - radius, radius * 2, radius * 2); } ctx.restore(); ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.strokeStyle = outlineColor; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillStyle = outlineColor; ctx.font = 'bold 14px Lora'; ctx.textAlign = 'center'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4; ctx.fillText(name, x, y + radius + 18); ctx.shadowBlur = 0; }
 
         function drawGame() {
@@ -548,59 +688,46 @@
             if (MemoryStore.gameState === 'GAME' && currentLoadedMapData) {
                 ctx.drawImage(currentLoadedMapImg, 0, 0);
                 
-                // GM DUvar ve Araç Gösterimleri
                 if(MemoryStore.role === 'GM') { 
                     if(currentLoadedMapData.walls) { ctx.fillStyle = 'rgba(220, 38, 38, 0.3)'; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; currentLoadedMapData.walls.forEach(w => { ctx.beginPath(); if(w.type === 'rect') ctx.rect(w.x, w.y, w.w, w.h); else ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke(); }); }
                 }
 
                 if(currentLoadedMapData.poisons) currentLoadedMapData.poisons.forEach(w => { ctx.beginPath(); ctx.rect(w.x, w.y, w.w, w.h); ctx.fillStyle = 'rgba(34, 197, 94, 0.2)'; ctx.fill(); ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)'; ctx.stroke(); });
                 if(currentLoadedMapData.tps) currentLoadedMapData.tps.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fillStyle = MemoryStore.role==='GM' ? 'rgba(168, 85, 247, 0.6)' : 'rgba(168, 85, 247, 0.3)'; ctx.fill(); ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = 'white'; ctx.font='bold 12px cinzel'; ctx.textAlign='center'; ctx.fillText(MemoryStore.role==='GM'?`Geçit (${t.targets.length})`:'GEÇİT', t.x, t.y+4); });
-                if(currentLoadedMapData.bots) currentLoadedMapData.bots.forEach(b => { drawCharacter(b.x, b.y, b.radius, b.name, b.image, b.isMerchant ? '#fcd34d' : '#059669'); if(b.activeBubble) { drawChatBubble(b.x, b.y, b.activeBubble.text, Math.min(1, b.activeBubble.timer/30)); b.activeBubble.timer--; if(b.activeBubble.timer<=0) b.activeBubble=null; } });
+                if(currentLoadedMapData.bots) currentLoadedMapData.bots.forEach(b => { drawCharacter(b.x, b.y, b.radius, b.name, b.image, b.isMerchant ? '#fcd34d' : '#059669'); if(b.activeBubble) { drawChatBubble(b.x, b.y, b.activeBubble.text, Math.min(1, b.activeBubble.timer/30), b.activeBubble.type); b.activeBubble.timer--; if(b.activeBubble.timer<=0) b.activeBubble=null; } });
                 
                 if (MemoryStore.role === 'PLAYER') {
                     const p = MemoryStore.player; drawCharacter(p.visualX, p.visualY, p.size, p.name, p.image, '#d4af37');
-                    if (p.activeBubble) { drawChatBubble(p.visualX, p.visualY, p.activeBubble.text, Math.min(1, p.activeBubble.timer / 30)); p.activeBubble.timer--; if (p.activeBubble.timer <= 0) p.activeBubble = null; }
+                    if (p.activeBubble) { drawChatBubble(p.visualX, p.visualY, p.activeBubble.text, Math.min(1, p.activeBubble.timer / 30), p.activeBubble.type); p.activeBubble.timer--; if (p.activeBubble.timer <= 0) p.activeBubble = null; }
                 }
 
                 Object.keys(OtherPlayers).forEach(socketId => {
                     const op = OtherPlayers[socketId];
-                    if (op.mapId === currentLoadedMapData.id && socketId !== socket.id) { drawCharacter(op.visualX, op.visualY, op.size, op.name, op.image, '#9ca3af'); if(op.activeBubble) { drawChatBubble(op.visualX, op.visualY, op.activeBubble.text, Math.min(1, op.activeBubble.timer/30)); op.activeBubble.timer--; if(op.activeBubble.timer<=0) op.activeBubble=null; } }
+                    if (op.mapId === currentLoadedMapData.id && socketId !== socket.id) { drawCharacter(op.visualX, op.visualY, op.size, op.name, op.image, '#9ca3af'); if(op.activeBubble) { drawChatBubble(op.visualX, op.visualY, op.activeBubble.text, Math.min(1, op.activeBubble.timer/30), op.activeBubble.type); op.activeBubble.timer--; if(op.activeBubble.timer<=0) op.activeBubble=null; } }
                 });
 
                 if (MemoryStore.role === 'GM' && !editorDrawing) { if(currentLoadedMapData.bots) currentLoadedMapData.bots.forEach(b => { if (b.path && b.path.length > 0) { ctx.beginPath(); ctx.moveTo(b.x, b.y); b.path.forEach(pt => ctx.lineTo(pt.x, pt.y)); ctx.lineTo(b.path[0].x, b.path[0].y); ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)'; ctx.lineWidth = 2; ctx.stroke(); } }); if (editorTool === 'PATH' && editingPathBot) { ctx.beginPath(); ctx.arc(editingPathBot.x, editingPathBot.y, editingPathBot.radius + 8, 0, Math.PI*2); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3; ctx.stroke(); } }
 
-                // YENİ ÇATI SİSTEMİ (POLİGON)
                 if (currentLoadedMapData.roofs && currentLoadedMapData.roofs.length > 0) {
                     if (MemoryStore.role === 'PLAYER') {
                         const p = MemoryStore.player;
                         let insideRoof = null;
-                        for(let r of currentLoadedMapData.roofs) { if(isPointInPoly(p.x, p.y, r.points)) { insideRoof = r; break; } }
+                        for(let r of currentLoadedMapData.roofs) { if(isPointInPoly(p.visualX, p.visualY, r.points)) { insideRoof = r; break; } }
                         
                         if (insideRoof) {
-                            // Çatının İçindeyiz (Dışarısı kararacak, çatı içi aydınlık kalacak)
-                            ctx.fillStyle = 'rgba(0,0,0,0.95)';
-                            ctx.beginPath();
-                            ctx.rect(0, 0, currentLoadedMapData.width, currentLoadedMapData.height);
-                            // Çatının içini keserek oyar (Maskeleme)
+                            ctx.fillStyle = 'rgba(0,0,0,0.95)'; ctx.beginPath(); ctx.rect(0, 0, currentLoadedMapData.width, currentLoadedMapData.height);
                             ctx.moveTo(insideRoof.points[0].x, insideRoof.points[0].y);
                             for(let i=1; i<insideRoof.points.length; i++) ctx.lineTo(insideRoof.points[i].x, insideRoof.points[i].y);
-                            ctx.closePath();
-                            ctx.fill('evenodd'); 
+                            ctx.closePath(); ctx.fill('evenodd'); 
                         } else {
-                            // Dışarıdayız (Çatılar kahverengi/ahşap sağlam doku gibi görünecek)
-                            ctx.fillStyle = '#3a2e24'; // Koyu ahşap/kiremit rengi
-                            ctx.strokeStyle = '#1e1611';
-                            ctx.lineWidth = 3;
+                            ctx.fillStyle = '#3a2e24'; ctx.strokeStyle = '#1e1611'; ctx.lineWidth = 3;
                             currentLoadedMapData.roofs.forEach(r => { 
-                                ctx.beginPath();
-                                ctx.moveTo(r.points[0].x, r.points[0].y);
+                                ctx.beginPath(); ctx.moveTo(r.points[0].x, r.points[0].y);
                                 for(let i=1; i<r.points.length; i++) ctx.lineTo(r.points[i].x, r.points[i].y);
-                                ctx.closePath();
-                                ctx.fill(); ctx.stroke();
+                                ctx.closePath(); ctx.fill(); ctx.stroke();
                             });
                         }
                     } else if (MemoryStore.role === 'GM') {
-                        // GM Çatıları gölgeli ve çizgili görsün
                         ctx.fillStyle = 'rgba(74, 63, 53, 0.4)'; ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2;
                         currentLoadedMapData.roofs.forEach(r => { 
                             ctx.beginPath(); ctx.moveTo(r.points[0].x, r.points[0].y);
@@ -616,20 +743,45 @@
                     else if (editorTool === 'WALL_CIRCLE' || editorTool === 'TP') { ctx.beginPath(); ctx.arc(editStartX, editStartY, Math.max(5, Math.hypot(editCurrentX-editStartX, editCurrentY-editStartY)), 0, Math.PI*2); ctx.fillStyle = editorTool === 'TP' ? 'rgba(168,85,247,0.6)' : 'rgba(220,38,38,0.6)'; ctx.fill(); }
                 }
                 
-                // GM Çatı Noktalarını Çizerken Gösterim
                 if (MemoryStore.role === 'GM' && editorTool === 'WALL_ROOF' && tempRoofPoints.length > 0) {
                     ctx.strokeStyle = '#fcd34d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tempRoofPoints[0].x, tempRoofPoints[0].y);
                     for(let i=1; i<tempRoofPoints.length; i++) ctx.lineTo(tempRoofPoints[i].x, tempRoofPoints[i].y);
-                    ctx.lineTo(editCurrentX, editCurrentY); // Fareye giden anlık çizgi
-                    ctx.stroke();
+                    ctx.lineTo(editCurrentX, editCurrentY); ctx.stroke();
                     tempRoofPoints.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI*2); ctx.fillStyle = 'red'; ctx.fill(); });
                 }
             }
             ctx.restore();
 
             let finalFilter = MemoryStore.environmentColor;
-            if (finalFilter === "rgba(0,0,0,0)") { const autoFilter = getDynamicTimeFilter(); if (autoFilter) finalFilter = autoFilter; }
-            if (finalFilter !== "rgba(0,0,0,0)") { ctx.fillStyle = finalFilter; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+            if (finalFilter === "rgba(0,0,0,0)") { 
+                const autoFilter = getDynamicTimeFilter(); 
+                if (autoFilter) finalFilter = autoFilter; 
+            }
+
+            if (finalFilter !== "rgba(0,0,0,0)") { 
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0); 
+                ctx.fillStyle = finalFilter; 
+                ctx.fillRect(0, 0, canvas.width, canvas.height); 
+
+                const alphaMatch = finalFilter.match(/rgba\([^,]+,[^,]+,[^,]+,\s*([^)]+)\)/);
+                let alpha = alphaMatch ? parseFloat(alphaMatch[1]) : 0;
+
+                if (alpha > 0.2 && MemoryStore.gameState === 'GAME' && MemoryStore.role === 'PLAYER') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                    const px = (MemoryStore.player.visualX * mapScaleFactor) - camera.x;
+                    const py = (MemoryStore.player.visualY * mapScaleFactor) - camera.y;
+
+                    const gradient = ctx.createRadialGradient(px, py, 0, px, py, 350);
+                    gradient.addColorStop(0, `rgba(0, 0, 0, ${alpha})`); 
+                    gradient.addColorStop(0.5, `rgba(0, 0, 0, ${alpha * 0.6})`); 
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); 
+
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath(); ctx.arc(px, py, 350, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.restore();
+            }
 
             if (MemoryStore.weather === 'RAIN' || MemoryStore.weather === 'SNOW') {
                 const isRain = MemoryStore.weather === 'RAIN'; ctx.fillStyle = isRain ? 'rgba(150, 180, 255, 0.4)' : 'rgba(255, 255, 255, 0.8)'; ctx.strokeStyle = isRain ? 'rgba(150, 180, 255, 0.3)' : 'transparent'; ctx.lineWidth = 1.5;
