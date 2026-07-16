@@ -167,6 +167,16 @@ io.on('connection', (socket) => {
         if (map && map.chests) { let chest = map.chests.find(c => c.id === chestId); if(chest) { chest.items = items; saveData(); io.emit('map_objects_synced', mapId, map); } }
     });
 
+    // NOTLARI TEMİZLEME (Envantere alındığında)
+    socket.on('remove_note_from_map', (mapId, noteId) => {
+        let map = serverState.maps.find(m => m.id === mapId);
+        if (map && map.notes) {
+            map.notes = map.notes.filter(n => n.id !== noteId);
+            saveData();
+            io.emit('map_objects_synced', mapId, map);
+        }
+    });
+
     // TİCARET
     let trades = {};
     socket.on('trade_request', (targetId, reqName) => { io.to(targetId).emit('trade_request_received', socket.id, reqName); });
@@ -175,7 +185,7 @@ io.on('connection', (socket) => {
         trades[tradeId] = { p1: requesterId, p2: socket.id, state: { p1Items:[], p2Items:[], p1Gold:0, p2Gold:0, p1Locked:false, p2Locked:false } };
         io.to(requesterId).emit('trade_started', tradeId, 'p1'); io.to(socket.id).emit('trade_started', tradeId, 'p2');
     });
-    socket.on('trade_decline', (requesterId) => { io.to(requesterId).emit('trade_cancelled', "Karşı taraf teklifi reddetti."); });
+    socket.on('trade_decline', (requesterId, targetName) => { io.to(requesterId).emit('trade_cancelled', `${targetName || "Karşı taraf"} teklifi reddetti.`); });
     socket.on('trade_update_offer', (tradeId, role, items, gold) => {
         if(!trades[tradeId]) return; const tr = trades[tradeId];
         if(role === 'p1') { tr.state.p1Items = items; tr.state.p1Gold = gold; } else { tr.state.p2Items = items; tr.state.p2Gold = gold; }
