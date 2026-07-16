@@ -19,9 +19,11 @@ let serverState = {
     speedMultiplier: 1.0,
     users: [
         { username: '213enbüyükbenim', password: '213213', role: 'GM' }
-    ]
+    ],
+    usersData: {} // OYUNCU ENVANTERLERİ, ALTINLARI, PORTRELERİ BURADA SAKLANACAK
 };
 
+// Sunucu açıldığında eski verileri yükle
 if (fs.existsSync(DATA_FILE)) {
     try {
         const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -29,6 +31,7 @@ if (fs.existsSync(DATA_FILE)) {
         if (!serverState.users.find(u => u.username === '213enbüyükbenim')) {
             serverState.users.push({ username: '213enbüyükbenim', password: '213213', role: 'GM' });
         }
+        if(!serverState.usersData) serverState.usersData = {};
         console.log("Kayıtlı diyar verileri başarıyla yüklendi!");
     } catch (err) {
         console.error("Kayıt dosyası okunurken hata oluştu:", err);
@@ -44,15 +47,26 @@ let activePlayers = {};
 io.on('connection', (socket) => {
     console.log('Bir ruh bağlantı kurdu. ID:', socket.id);
 
+    // GİRİŞ
     socket.on('login_request', (username, password) => {
         const user = serverState.users.find(u => u.username === username && u.password === password);
         if (user) {
-            socket.emit('login_success', user.role, user.username, serverState, activePlayers);
+            // Eğer kullanıcının kayıtlı bir oyun verisi yoksa, sıfırdan oluştur
+            if (!serverState.usersData[username]) {
+                serverState.usersData[username] = {
+                    gold: user.role === 'GM' ? 999999 : 0, 
+                    hp: 100, maxHp: 100, 
+                    inventory: [], wardrobe: [], 
+                    image: null, name: username, size: 18
+                };
+            }
+            socket.emit('login_success', user.role, user.username, serverState, activePlayers, serverState.usersData[username]);
         } else {
             socket.emit('login_error', 'Hatalı kullanıcı adı veya şifre.');
         }
     });
 
+    // OYUNCU KAYIT
     socket.on('create_user', (newUsername, newPassword) => {
         if (serverState.users.find(u => u.username === newUsername)) {
             socket.emit('user_create_result', false, 'Bu kullanıcı adı zaten alınmış!');
@@ -61,6 +75,14 @@ io.on('connection', (socket) => {
         serverState.users.push({ username: newUsername, password: newPassword, role: 'PLAYER' });
         saveData();
         socket.emit('user_create_result', true, `${newUsername} başarıyla diyara eklendi.`);
+    });
+
+    // OYUNCU VERİLERİNİ GÜNCELLEME (Envanter, altın vb. değiştiğinde client bunu çağırır)
+    socket.on('player_update_stats', (username, data) => {
+        if(serverState.usersData[username]) {
+            serverState.usersData[username] = data;
+            saveData();
+        }
     });
 
     socket.on('disconnect', () => {
@@ -73,6 +95,7 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('player_sync_single', socket.id, playerData);
     });
 
+    // HARİTA
     socket.on('gm_upload_map', (newMap) => {
         serverState.maps.push(newMap);
         if (serverState.maps.length === 1) serverState.mainMapId = newMap.id;
@@ -84,7 +107,6 @@ io.on('connection', (socket) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
             map.walls = objectsData.walls || [];
-            map.fires = objectsData.fires || [];
             map.tps = objectsData.tps || [];
             map.bots = objectsData.bots || [];
             map.roofs = objectsData.roofs || [];
@@ -112,6 +134,7 @@ io.on('connection', (socket) => {
         io.to(targetId).emit('receive_gold', amount);
     });
 
+    // MESAJLAR
     socket.on('chat_message', (msgData) => {
         msgData.socketId = socket.id;
         socket.broadcast.emit('new_chat_message', msgData);
@@ -121,6 +144,7 @@ io.on('connection', (socket) => {
         io.emit('show_god_message', text);
     });
 
+    // IŞINLANMA YARDIMCISI (DÜZELTİLDİ)
     socket.on('gm_teleport_action', (action, targetId, mapId, x, y) => {
         if(action === 'goto') {
             const target = activePlayers[targetId];
@@ -130,6 +154,17 @@ io.on('connection', (socket) => {
         }
     });
 
+    // NOT SİLME YARDIMCISI (Oyuncu notu çantaya alınca)
+    socket.on('remove_note_from_map', (mapId, noteId) => {
+        let map = serverState.maps.find(m => m.id === mapId);
+        if (map && map.notes) {
+            map.notes = map.notes.filter(n => n.id !== noteId);
+            saveData();
+            io.emit('map_objects_synced', mapId, { walls: map.walls, tps: map.tps, bots: map.bots, roofs: map.roofs, notes: map.notes, musicZones: map.musicZones });
+        }
+    });
+
+    // TİCARET
     let trades = {};
     socket.on('trade_request', (targetId, reqName) => { io.to(targetId).emit('trade_request_received', socket.id, reqName); });
     socket.on('trade_accept', (requesterId) => {
@@ -137,7 +172,7 @@ io.on('connection', (socket) => {
         trades[tradeId] = { p1: requesterId, p2: socket.id, state: { p1Items:[], p2Items:[], p1Gold:0, p2Gold:0, p1Locked:false, p2Locked:false } };
         io.to(requesterId).emit('trade_started', tradeId, 'p1'); io.to(socket.id).emit('trade_started', tradeId, 'p2');
     });
-    socket.on('trade_decline', (requesterId) => { io.to(requesterId).emit('trade_cancelled', "Karşı taraf teklifi reddetti."); });
+    socket.on('trade_decline', (requesterId, targetName) => { io.to(requesterId).emit('trade_cancelled', `${targetName} ticaret teklifini reddetti.`); });
     socket.on('trade_update_offer', (tradeId, role, items, gold) => {
         if(!trades[tradeId]) return; const tr = trades[tradeId];
         if(role === 'p1') { tr.state.p1Items = items; tr.state.p1Gold = gold; } else { tr.state.p2Items = items; tr.state.p2Gold = gold; }
@@ -156,7 +191,7 @@ io.on('connection', (socket) => {
     });
     socket.on('trade_cancel', (tradeId) => {
         if(!trades[tradeId]) return; const tr = trades[tradeId];
-        io.to(tr.p1).emit('trade_cancelled', "Takas iptal edildi."); io.to(tr.p2).emit('trade_cancelled', "Takas iptal edildi.");
+        io.to(tr.p1).emit('trade_cancelled', "Takas masadan kalkıldı."); io.to(tr.p2).emit('trade_cancelled', "Takas masadan kalkıldı.");
         delete trades[tradeId];
     });
 });
