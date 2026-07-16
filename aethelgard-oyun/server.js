@@ -103,12 +103,13 @@ io.on('connection', (socket) => {
         saveData(); io.emit('world_maps_updated', serverState.maps, serverState.mainMapId);
     });
 
-    // HARİTA OBJELERİNİ GÜNCELLEME VE SENKRONİZASYON
+    // HARİTA OBJELERİNİ GÜNCELLEME VE SENKRONİZASYON (ANINDA)
     socket.on('gm_update_map_objects', (mapId, objectsData) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
             Object.assign(map, objectsData);
             saveData(); 
+            // Herkese ANINDA gönderir
             socket.broadcast.emit('map_objects_synced', mapId, objectsData);
         }
     });
@@ -162,7 +163,7 @@ io.on('connection', (socket) => {
 
     socket.on('item_action_broadcast', (mapId, actionType, x, y, data) => { socket.broadcast.emit('item_action_receive', mapId, actionType, x, y, data); });
 
-    // KAPI VE SANDIK ETKİLEŞİMLERİ
+    // KAPI VE SANDIK ETKİLEŞİMLERİ (ANINDA SENKRONİZASYON)
     socket.on('interact_object', (mapId, type, objId, action) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
@@ -175,7 +176,7 @@ io.on('connection', (socket) => {
                         if (!obj.isLocked) obj.isOpen = !obj.isOpen;
                     }
                     saveData();
-                    io.emit('map_objects_synced', mapId, map);
+                    io.emit('map_objects_synced', mapId, map); // HERKESE ANINDA GİDER
                 }
             }
         }
@@ -186,12 +187,14 @@ io.on('connection', (socket) => {
         if (map && map.chests) { let chest = map.chests.find(c => c.id === chestId); if(chest) { chest.items = items; saveData(); io.emit('map_objects_synced', mapId, map); } }
     });
 
+    // NOT SİLME YARDIMCISI (ANINDA SENKRONİZASYON FİXLENDİ)
     socket.on('remove_note_from_map', (mapId, noteId) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map && map.notes) {
             map.notes = map.notes.filter(n => n.id !== noteId);
             saveData();
-            io.emit('map_objects_synced', mapId, map);
+            // Not silindiği an haritadaki herkese güncel haritayı yayınla
+            io.emit('map_objects_synced', mapId, map); 
         }
     });
 
