@@ -25,7 +25,6 @@
 
         .parchment { background-color: #e8d5a1; background-image: url('https://www.transparenttextures.com/patterns/old-wall.png'); box-shadow: 0 20px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(100,60,20,0.5); color: #3e2723; transform: rotate(-2deg); border-radius: 2px 5px 3px 4px; }
         
-        /* MOBİL SİSTEMİ (SLIDE-OUT SIDEBAR) */
         #mobile-sidebar { position: fixed; top: 0; right: -100%; width: 300px; height: 100%; background: rgba(20, 15, 10, 0.95); border-left: 2px solid var(--medieval-border); transition: right 0.3s ease; z-index: 60; padding: 1rem; overflow-y: auto; box-shadow: -5px 0 25px rgba(0,0,0,0.8); }
         #mobile-sidebar.open { right: 0; }
         #mobile-menu-btn { display: none; position: absolute; top: 15px; right: 15px; z-index: 70; }
@@ -41,12 +40,15 @@
 
         .fog-overlay { position: absolute; inset: 0; pointer-events: none; background: url('https://www.transparenttextures.com/patterns/dust.png'); opacity: 0.4; animation: fogAnim 60s linear infinite; mix-blend-mode: screen; z-index: 5; display: none; }
         @keyframes fogAnim { 0% { background-position: 0 0; } 100% { background-position: 1000px 500px; } }
+
+        /* Yeni Tab Sistemi CSS */
+        .tab-btn { background: rgba(0,0,0,0.5); color: gray; border-bottom: 2px solid transparent; }
+        .tab-btn.active { background: rgba(30, 24, 20, 0.9); color: var(--medieval-gold); border-bottom: 2px solid var(--medieval-gold); font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="ui-layer" class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
         
-        <!-- LOGIN -->
         <div id="screen-login" class="medieval-panel p-8 flex flex-col gap-6 pointer-events-auto transition-all duration-300 w-[22rem] text-center">
             <div><h1 class="text-4xl font-extrabold text-[--medieval-gold] mb-2 drop-shadow-lg">Aethelgard</h1><p class="text-[--medieval-text] opacity-80 italic text-sm">Diyarın Kapıları</p><div id="connection-status" class="text-xs text-yellow-500 mt-2 animate-pulse">Diyara bağlanılıyor...</div></div>
             <div id="login-form" class="flex flex-col gap-4 opacity-50 pointer-events-none transition-opacity">
@@ -57,7 +59,6 @@
             </div>
         </div>
 
-        <!-- PLAYER MENU -->
         <div id="screen-player-menu" class="hidden medieval-panel p-8 flex flex-col gap-5 pointer-events-auto w-96 max-h-[90vh] overflow-y-auto">
             <h2 class="text-3xl text-center text-[--medieval-gold] mb-2">Han Kapısı</h2><p class="text-center text-sm opacity-80 mb-2">Hoşgeldin, <span id="menu-player-name" class="font-bold text-[#fcd34d]"></span></p>
             <button onclick="showScreen('screen-player-char')" class="medieval-btn py-3 rounded font-bold cinzel tracking-wide">Karakter ve Kabiliyetler</button>
@@ -65,12 +66,11 @@
             <button onclick="logout()" class="mt-4 text-red-400 hover:text-red-300 text-sm font-bold cinzel text-center uppercase">Çıkış Yap</button>
         </div>
 
-        <!-- GM MENU -->
         <div id="screen-gm-menu" class="hidden medieval-panel p-8 flex flex-col gap-6 pointer-events-auto w-[36rem] max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-[--medieval-border] pb-4"><h2 class="text-3xl text-[--medieval-gold] cinzel">Kader Ustası Arşivi</h2><button onclick="logout()" class="text-red-400 font-bold cinzel text-sm uppercase">Çıkış</button></div>
             <div class="flex gap-2 mb-2">
-                <button onclick="showScreen('screen-player-char')" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(90deg);">🧙‍♂️ Karakter Belgesi</button>
-                <button onclick="document.getElementById('user-create-modal').classList.remove('hidden')" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(250deg);">👥 Yeni Oyuncu</button>
+                <button onclick="showScreen('screen-player-char')" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(90deg);">🧙‍♂️ Kendi Karakterini Düzenle</button>
+                <button onclick="document.getElementById('user-create-modal').classList.remove('hidden')" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(250deg);">👥 Yeni Oyuncu Yarat</button>
             </div>
             <div class="flex gap-2 mb-2">
                 <button onclick="openGMGoldPanel()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(45deg);">💰 Altın Dağıt</button>
@@ -84,36 +84,70 @@
             </div>
         </div>
 
-        <!-- KARAKTER BELGESİ (STAT SİSTEMLİ) -->
-        <div id="screen-player-char" class="hidden medieval-panel p-8 flex flex-col gap-4 pointer-events-auto w-[28rem] max-h-[90vh] overflow-y-auto">
-            <h2 class="text-2xl text-center text-[--medieval-gold] cinzel">Karakter Yaratımı</h2>
-            <div class="flex flex-col items-center gap-2">
-                <div class="flex items-center justify-center w-32 h-32 bg-black/30 border border-dashed border-[--medieval-border] rounded-xl"><div id="char-preview-container" class="relative rounded-full border-2 border-[--medieval-gold] bg-black/50 flex items-center justify-center overflow-hidden transition-all" style="width: 72px; height: 72px;"><img id="char-preview" class="w-full h-full object-cover hidden" /><span id="char-placeholder" class="text-[--medieval-text] opacity-50 text-[10px] text-center px-1 italic">Portre</span></div></div>
-                <label class="cursor-pointer medieval-btn px-4 py-2 rounded text-xs cinzel mt-2">Portre Ekle<input type="file" accept="image/*" class="hidden" onchange="openCropModal(event)"></label>
-            </div>
-            <div class="border border-[--medieval-border] p-2 rounded bg-black/40"><h3 class="text-xs text-[--medieval-gold] cinzel mb-2 text-center">Gardırop (Portreler)</h3><div id="wardrobe-list-ui" class="flex gap-2 overflow-x-auto pb-2 justify-center flex-wrap"></div></div>
+        <!-- YENİ KARAKTER BELGESİ (SEKMELİ) -->
+        <div id="screen-player-char" class="hidden medieval-panel flex flex-col pointer-events-auto w-[32rem] max-h-[95vh] overflow-hidden p-0">
+            <h2 class="text-2xl text-center text-[--medieval-gold] cinzel mt-6 mb-2">Karakter Yaratımı</h2>
             
-            <div class="flex gap-2">
-                <div class="flex-1"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Karakter Lakabı</label><input type="text" id="char-name-input" class="w-full medieval-input rounded px-3 py-2 text-sm" placeholder="Oyun içi isim"></div>
-                <div class="w-24"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Boy (<span id="size-val-display">18</span>)</label><input type="range" id="char-size-input" min="10" max="40" value="18" class="w-full" oninput="updateCharPreviewSize(this.value)"></div>
+            <div class="flex w-full border-b border-[--medieval-border]">
+                <button onclick="switchCharTab('tab-gorunum')" id="btn-tab-gorunum" class="flex-1 py-3 tab-btn active cinzel text-sm">Görünüm ve Kimlik</button>
+                <button onclick="switchCharTab('tab-kabiliyet')" id="btn-tab-kabiliyet" class="flex-1 py-3 tab-btn cinzel text-sm">D&D Kabiliyetleri</button>
             </div>
 
-            <!-- D&D STATLARI -->
-            <div class="border border-[--medieval-border] p-3 rounded bg-black/40">
-                <div class="flex justify-between items-center border-b border-[--medieval-border] pb-2 mb-2">
-                    <h3 class="text-sm text-[--medieval-gold] cinzel font-bold">Kabiliyet Puanları</h3>
-                    <span class="text-xs text-[#a7f3d0] font-bold">Kalan Puan: <span id="stat-points-left">10</span></span>
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- GÖRÜNÜM SEKMESİ -->
+                <div id="tab-gorunum" class="flex flex-col gap-4">
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="flex items-center justify-center w-32 h-32 bg-black/30 border border-dashed border-[--medieval-border] rounded-xl"><div id="char-preview-container" class="relative rounded-full border-2 border-[--medieval-gold] bg-black/50 flex items-center justify-center overflow-hidden transition-all" style="width: 72px; height: 72px;"><img id="char-preview" class="w-full h-full object-cover hidden" /><span id="char-placeholder" class="text-[--medieval-text] opacity-50 text-[10px] text-center px-1 italic">Portre</span></div></div>
+                        <label class="cursor-pointer medieval-btn px-4 py-2 rounded text-xs cinzel mt-2">Portre Ekle<input type="file" accept="image/*" class="hidden" onchange="openCropModal(event)"></label>
+                    </div>
+                    <div class="border border-[--medieval-border] p-2 rounded bg-black/40"><h3 class="text-xs text-[--medieval-gold] cinzel mb-2 text-center">Gardırop (Portreler)</h3><div id="wardrobe-list-ui" class="flex gap-2 overflow-x-auto pb-2 justify-center flex-wrap"></div></div>
+                    
+                    <div class="flex gap-2">
+                        <div class="flex-1"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Karakter Lakabı</label><input type="text" id="char-name-input" class="w-full medieval-input rounded px-3 py-2 text-sm" placeholder="Oyun içi isim"></div>
+                        <div class="w-24"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Boy (<span id="size-val-display">18</span>)</label><input type="range" id="char-size-input" min="10" max="40" value="18" class="w-full" oninput="updateCharPreviewSize(this.value)"></div>
+                    </div>
                 </div>
-                <p class="text-[10px] opacity-70 italic mb-3">Puanları karakterine uygun dağıt. Güç zarları, Algı fısıltı duymayı, Çeviklik yürüme hızını etkiler.</p>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="flex items-center justify-between"><span class="text-xs font-bold text-red-300">Güç (STR)</span> <div class="flex items-center gap-2"><button onclick="adjustStat('str',-1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">-</button><span id="stat-val-str" class="text-sm font-bold w-4 text-center">5</span><button onclick="adjustStat('str',1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">+</button></div></div>
-                    <div class="flex items-center justify-between"><span class="text-xs font-bold text-green-300">Çeviklik (AGI)</span> <div class="flex items-center gap-2"><button onclick="adjustStat('agi',-1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">-</button><span id="stat-val-agi" class="text-sm font-bold w-4 text-center">5</span><button onclick="adjustStat('agi',1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">+</button></div></div>
-                    <div class="flex items-center justify-between"><span class="text-xs font-bold text-blue-300">Zeka (INT)</span> <div class="flex items-center gap-2"><button onclick="adjustStat('int',-1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">-</button><span id="stat-val-int" class="text-sm font-bold w-4 text-center">5</span><button onclick="adjustStat('int',1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">+</button></div></div>
-                    <div class="flex items-center justify-between"><span class="text-xs font-bold text-purple-300">Algı (PER)</span> <div class="flex items-center gap-2"><button onclick="adjustStat('per',-1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">-</button><span id="stat-val-per" class="text-sm font-bold w-4 text-center">5</span><button onclick="adjustStat('per',1)" class="medieval-btn w-5 h-5 rounded flex items-center justify-center">+</button></div></div>
+
+                <!-- KABİLİYET (STAT) SEKMESİ -->
+                <div id="tab-kabiliyet" class="hidden flex flex-col gap-4">
+                    <div class="flex justify-between items-center border-b border-[--medieval-border] pb-2">
+                        <h3 class="text-lg text-[--medieval-gold] cinzel font-bold">Kabiliyet Dağılımı</h3>
+                        <span class="text-sm text-[#a7f3d0] font-bold bg-green-900/50 px-3 py-1 rounded border border-green-700">Kalan Puan: <span id="stat-points-left">15</span></span>
+                    </div>
+                    <p class="text-xs opacity-70 italic mb-2">Rol yapma (RP) deneyimini şekillendirecek temel niteliklerini belirle. Her stat en az 5, en fazla 15 olabilir.</p>
+                    
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded border border-red-900/50">
+                            <div class="flex-1"><span class="text-sm font-bold text-red-400 block">Güç (STR)</span><span class="text-[10px] text-gray-400">Fiziksel zarlara bonus ekler, hasarı artırır.</span></div>
+                            <div class="flex items-center gap-2"><button onclick="adjustStat('str',-1)" class="medieval-btn w-6 h-6 rounded font-bold">-</button><span id="stat-val-str" class="text-base font-bold w-6 text-center text-white">5</span><button onclick="adjustStat('str',1)" class="medieval-btn w-6 h-6 rounded font-bold">+</button></div>
+                        </div>
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded border border-green-900/50">
+                            <div class="flex-1"><span class="text-sm font-bold text-green-400 block">Çeviklik (AGI)</span><span class="text-[10px] text-gray-400">Haritadaki hareket (yürüme) hızını kalıcı artırır.</span></div>
+                            <div class="flex items-center gap-2"><button onclick="adjustStat('agi',-1)" class="medieval-btn w-6 h-6 rounded font-bold">-</button><span id="stat-val-agi" class="text-base font-bold w-6 text-center text-white">5</span><button onclick="adjustStat('agi',1)" class="medieval-btn w-6 h-6 rounded font-bold">+</button></div>
+                        </div>
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded border border-blue-900/50">
+                            <div class="flex-1"><span class="text-sm font-bold text-blue-400 block">Zeka (INT)</span><span class="text-[10px] text-gray-400">Antik yazıları okuma ve büyü zarını etkiler.</span></div>
+                            <div class="flex items-center gap-2"><button onclick="adjustStat('int',-1)" class="medieval-btn w-6 h-6 rounded font-bold">-</button><span id="stat-val-int" class="text-base font-bold w-6 text-center text-white">5</span><button onclick="adjustStat('int',1)" class="medieval-btn w-6 h-6 rounded font-bold">+</button></div>
+                        </div>
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded border border-purple-900/50">
+                            <div class="flex-1"><span class="text-sm font-bold text-purple-400 block">Algı (PER)</span><span class="text-[10px] text-gray-400">Fısıltıları daha uzak mesafeden duyabilmeni sağlar.</span></div>
+                            <div class="flex items-center gap-2"><button onclick="adjustStat('per',-1)" class="medieval-btn w-6 h-6 rounded font-bold">-</button><span id="stat-val-per" class="text-base font-bold w-6 text-center text-white">5</span><button onclick="adjustStat('per',1)" class="medieval-btn w-6 h-6 rounded font-bold">+</button></div>
+                        </div>
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded border border-yellow-900/50">
+                            <div class="flex-1"><span class="text-sm font-bold text-yellow-500 block">Dayanıklılık (CON)</span><span class="text-[10px] text-gray-400">Maksimum Can (HP) miktarını kalıcı olarak belirler.</span></div>
+                            <div class="flex items-center gap-2"><button onclick="adjustStat('con',-1)" class="medieval-btn w-6 h-6 rounded font-bold">-</button><span id="stat-val-con" class="text-base font-bold w-6 text-center text-white">5</span><button onclick="adjustStat('con',1)" class="medieval-btn w-6 h-6 rounded font-bold">+</button></div>
+                        </div>
+                        <div class="flex items-center justify-between bg-black/40 p-2 rounded border border-pink-900/50">
+                            <div class="flex-1"><span class="text-sm font-bold text-pink-400 block">Karizma (CHA)</span><span class="text-[10px] text-gray-400">İkna yeteneği (İleride NPC fiyat indirimleri).</span></div>
+                            <div class="flex items-center gap-2"><button onclick="adjustStat('cha',-1)" class="medieval-btn w-6 h-6 rounded font-bold">-</button><span id="stat-val-cha" class="text-base font-bold w-6 text-center text-white">5</span><button onclick="adjustStat('cha',1)" class="medieval-btn w-6 h-6 rounded font-bold">+</button></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <button onclick="saveCharacter()" class="w-full medieval-btn py-3 rounded font-bold cinzel mt-2 shadow-[0_0_10px_rgba(212,175,55,0.3)]">Karakteri Mühürle & Dön</button>
+            <div class="p-6 border-t border-[--medieval-border] bg-[--medieval-panel]">
+                <button onclick="saveCharacter()" class="w-full medieval-btn py-4 rounded font-bold cinzel text-lg shadow-[0_0_10px_rgba(212,175,55,0.3)] tracking-widest">Karakteri Mühürle & Dön</button>
+            </div>
         </div>
 
         <div id="screen-map-select" class="hidden medieval-panel p-8 flex flex-col gap-4 pointer-events-auto w-[32rem]">
@@ -121,7 +155,6 @@
         </div>
     </div>
 
-    <!-- OYUN İÇİ UI -->
     <div id="game-ui-layer" class="hidden absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
         
         <button id="mobile-menu-btn" onclick="toggleMobileSidebar()" class="medieval-btn px-4 py-2 rounded font-bold cinzel text-sm pointer-events-auto shadow-xl">Menü ☰</button>
@@ -166,12 +199,12 @@
             </div>
         </div>
 
-        <!-- GM TAM ARAÇ ÇUBUĞU -->
+        <!-- GM TAM ARAÇ ÇUBUĞU (YENİLENMİŞ) -->
         <div id="gm-live-toolbar" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 medieval-panel p-2 px-4 flex gap-2 items-center pointer-events-auto z-20 shadow-2xl">
             <span class="text-xs text-[--medieval-gold] cinzel mr-2 hidden md:inline">Araçlar:</span>
             <button onclick="setEditorTool('SELECT')" id="tool-select" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70">👆 Seç</button>
             <div class="h-4 w-px bg-[--medieval-border]"></div>
-            <button onclick="setEditorTool('WALL_RECT')" id="tool-wall_rect" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70">🧱 Duvar</button>
+            <button onclick="setEditorTool('WALL')" id="tool-wall" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 bg-gray-800 border-gray-500 text-gray-200">🧱 Duvar</button>
             <button onclick="setEditorTool('WALL_ROOF')" id="tool-wall_roof" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 border-yellow-500 text-yellow-100" style="background:#4a3f35">🏠 Çatı</button>
             <button onclick="setEditorTool('DOOR')" id="tool-door" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 border-orange-500 text-orange-200" style="background:#7c2d12">🚪 Kapı</button>
             <button onclick="setEditorTool('CHEST')" id="tool-chest" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 border-yellow-700 text-yellow-300" style="background:#854d0e">🧰 Sandık</button>
@@ -186,20 +219,10 @@
             <button onclick="setEditorTool('DELETE')" id="tool-delete" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 bg-red-900 border-red-500 text-red-200">🗑️ Silgi</button>
         </div>
 
-        <!-- TİCARET VE GÖREV İSTEĞİ PANELLERİ -->
-        <div id="trade-request-panel" class="hidden absolute top-20 left-1/2 transform -translate-x-1/2 medieval-panel p-4 z-50 pointer-events-auto border-[#d4af37]">
-            <div class="text-[--medieval-gold] font-bold text-center mb-3 text-sm" id="trade-req-text">X ticaret yapmak istiyor.</div>
-            <div class="flex gap-2"><button onclick="acceptTrade()" class="medieval-btn flex-1 py-1 rounded text-xs cinzel font-bold">Kabul</button><button onclick="declineTrade()" class="bg-red-900 text-red-200 flex-1 py-1 rounded border border-red-500 text-xs cinzel font-bold">Red</button></div>
+        <div id="interaction-prompt" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 pointer-events-auto hidden flex flex-col items-center gap-2">
+            <button onclick="triggerInteraction()" class="medieval-btn px-6 py-3 rounded-full font-bold cinzel text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse" id="interaction-btn-text">[E] Etkileşim</button>
+            <span id="interaction-extra-hint" class="text-xs text-[--medieval-gold] bg-black/60 px-3 py-1 rounded border border-[--medieval-border] hidden">[K] Kilitle</span>
         </div>
-
-        <div id="quest-offer-panel" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 medieval-panel p-6 z-50 pointer-events-auto border-purple-500 max-w-sm w-full text-center shadow-[0_0_30px_rgba(168,85,247,0.5)]">
-            <h3 class="text-2xl text-purple-400 cinzel font-bold mb-4">Yeni Bir Görev!</h3>
-            <p id="quest-offer-text" class="text-sm italic text-[--medieval-text] mb-4">Görev detayı...</p>
-            <div class="text-[#fcd34d] font-bold mb-6">Ödül/Avans: <span id="quest-offer-gold">0</span> Altın</div>
-            <div class="flex justify-between gap-4"><button onclick="document.getElementById('quest-offer-panel').classList.add('hidden')" class="text-red-400 font-bold cinzel text-sm">Reddet</button><button onclick="acceptQuest()" class="medieval-btn px-6 py-2 rounded font-bold cinzel shadow-[0_0_15px_rgba(168,85,247,0.6)]" style="filter: hue-rotate(250deg);">Kabul Et</button></div>
-        </div>
-
-        <div id="interaction-prompt" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 pointer-events-auto hidden"><button onclick="triggerInteraction()" class="medieval-btn px-6 py-3 rounded-full font-bold cinzel text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse" id="interaction-btn-text">[E] Etkileşim</button></div>
 
         <!-- Sohbet -->
         <div id="chat-container" class="hidden p-4 w-[28rem] pointer-events-auto self-start">
@@ -214,8 +237,10 @@
         <div id="chat-hint" class="absolute bottom-4 left-4 pointer-events-auto z-20"><button onclick="toggleChat()" class="medieval-btn px-4 py-2 rounded text-sm cinzel font-bold shadow-lg">💬 Sohbet [ENTER]</button></div>
         
         <div id="joystick-zone"><div id="joystick-knob"></div></div>
+        
         <div id="god-message-container" class="absolute top-1/3 left-0 w-full text-center pointer-events-none hidden z-50 transition-opacity duration-1000 opacity-0"><h1 id="god-message-text" class="text-4xl md:text-6xl font-extrabold text-[#fcd34d] cinzel tracking-widest drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]" style="text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 5px 15px rgba(255,0,0,1);">İLAHİ MESAJ</h1></div>
         
+        <!-- Yüzde Ölçekli Minimap (Eşya kuşanılınca görünür) -->
         <div id="minimap-container" class="hidden absolute top-4 right-4 w-48 h-48 border-2 border-[--medieval-border] rounded-full overflow-hidden z-20 bg-black/80 pointer-events-none">
             <canvas id="minimap-canvas" class="w-full h-full"></canvas>
         </div>
@@ -227,7 +252,46 @@
     <!-- Modallar Layer -->
     <div id="modals-layer" class="pointer-events-none absolute inset-0 z-50">
         
-        <!-- YENİ DİYALOG (NPC) MODALI -->
+        <!-- GENEL UYARI MODALI -->
+        <div id="custom-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
+            <div class="medieval-panel p-8 max-w-sm w-full text-center">
+                <h3 id="modal-title" class="text-2xl text-[--medieval-gold] cinzel mb-3">Başlık</h3>
+                <p id="modal-text" class="text-[--medieval-text] mb-8 text-sm italic">Mesaj...</p>
+                <button onclick="closeModal()" class="medieval-btn px-8 py-2 rounded font-bold cinzel">Anladım</button>
+            </div>
+        </div>
+
+        <!-- CROP MODALI -->
+        <div id="crop-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto">
+            <div class="medieval-panel p-6 max-w-sm w-full text-center flex flex-col items-center">
+                <h3 class="text-xl text-[--medieval-gold] cinzel mb-2">Portreyi Ayarla</h3>
+                <div class="relative w-48 h-48 border-2 border-[--medieval-gold] rounded-full overflow-hidden mb-4 bg-black cursor-move" id="crop-area">
+                    <canvas id="crop-canvas" width="192" height="192" class="absolute top-0 left-0 w-full h-full"></canvas>
+                </div>
+                <div class="flex gap-3 w-full">
+                    <button onclick="cancelCrop()" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">İptal</button>
+                    <button onclick="saveCrop()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm">Onayla & Yükle</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- KULLANICI YARATMA MODALI -->
+        <div id="user-create-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
+            <div class="medieval-panel p-8 max-w-sm w-full text-center border-[#a855f7]">
+                <h3 class="text-2xl text-[#a855f7] cinzel mb-2">Yeni Oyuncu Mührü</h3>
+                <p class="text-xs opacity-70 mb-6 italic text-[--medieval-text]">Sadece Kadim Ustalar yeni bir ruhu diyara davet edebilir.</p>
+                <div class="flex flex-col gap-4 mb-6">
+                    <input type="text" id="new-user-name" class="medieval-input w-full p-3 rounded text-center" placeholder="Kullanıcı Adı">
+                    <input type="text" id="new-user-pass" class="medieval-input w-full p-3 rounded text-center" placeholder="Geçiş Şifresi">
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('user-create-modal').classList.add('hidden')" class="flex-1 text-red-400 font-bold cinzel text-sm">Vazgeç</button>
+                    <button onclick="createPlayerAccount()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(250deg);">Ruhu Yarat</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- YENİ DİYALOG (NPC) OYUN İÇİ EKRANI -->
         <div id="dialog-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto z-50">
             <div class="medieval-panel p-8 max-w-lg w-full flex flex-col gap-4">
                 <div class="flex items-center gap-4 border-b border-[--medieval-border] pb-4">
@@ -240,11 +304,73 @@
             </div>
         </div>
 
-        <div id="custom-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-8 max-w-sm w-full text-center"><h3 id="modal-title" class="text-2xl text-[--medieval-gold] cinzel mb-3">Başlık</h3><p id="modal-text" class="text-[--medieval-text] mb-8 text-sm italic">Mesaj...</p><button onclick="closeModal()" class="medieval-btn px-8 py-2 rounded font-bold cinzel">Anladım</button></div></div>
-        <div id="crop-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto"><div class="medieval-panel p-6 max-w-sm w-full text-center flex flex-col items-center"><h3 class="text-xl text-[--medieval-gold] cinzel mb-2">Portreyi Ayarla</h3><div class="relative w-48 h-48 border-2 border-[--medieval-gold] rounded-full overflow-hidden mb-4 bg-black cursor-move" id="crop-area"><canvas id="crop-canvas" width="192" height="192" class="absolute top-0 left-0 w-full h-full"></canvas></div><div class="flex gap-3 w-full"><button onclick="cancelCrop()" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">İptal</button><button onclick="saveCrop()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm">Onayla & Yükle</button></div></div></div>
-        
-        <div id="user-create-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-8 max-w-sm w-full text-center border-[#a855f7]"><h3 class="text-2xl text-[#a855f7] cinzel mb-2">Yeni Oyuncu Mührü</h3><p class="text-xs opacity-70 mb-6 italic text-[--medieval-text]">Sadece Kadim Ustalar yeni bir ruhu diyara davet edebilir.</p><div class="flex flex-col gap-4 mb-6"><input type="text" id="new-user-name" class="medieval-input w-full p-3 rounded text-center" placeholder="Kullanıcı Adı"><input type="text" id="new-user-pass" class="medieval-input w-full p-3 rounded text-center" placeholder="Geçiş Şifresi"></div><div class="flex gap-3"><button onclick="document.getElementById('user-create-modal').classList.add('hidden')" class="flex-1 text-red-400 font-bold cinzel text-sm">Vazgeç</button><button onclick="createPlayerAccount()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(250deg);">Ruhu Yarat</button></div></div></div>
-        
+        <!-- GM BOT EKLEME MODALI (METİN AĞACI İLE) -->
+        <div id="bot-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
+            <div class="medieval-panel p-6 max-w-4xl w-full border-[#059669] max-h-[95vh] overflow-y-auto flex gap-6">
+                <!-- Sol Taraf: Temel Ayarlar -->
+                <div class="w-1/3 flex flex-col gap-4 border-r border-[--medieval-border] pr-6">
+                    <h3 class="text-xl text-[--medieval-gold] cinzel mb-2 text-center">Gezgin Kaydı</h3>
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="relative w-24 h-24 rounded-full border-2 border-[#059669] bg-black/50 flex items-center justify-center overflow-hidden"><img id="bot-preview" class="w-full h-full object-cover hidden" /><span id="bot-placeholder" class="text-[--medieval-text] opacity-50 text-xs text-center px-2 italic">Resim</span></div>
+                        <label class="cursor-pointer medieval-btn px-3 py-1 rounded text-xs cinzel w-full text-center" style="filter: hue-rotate(90deg);">Yükle<input type="file" accept="image/*" class="hidden" onchange="handleBotImageUpload(event)"></label>
+                    </div>
+                    <div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">İsim</label><input type="text" id="bot-name-input" class="w-full medieval-input rounded px-3 py-1 text-sm"></div>
+                    <div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Boyut (<span id="bot-size-display">20</span>)</label><input type="range" id="bot-size-input" min="10" max="60" value="20" class="w-full" oninput="document.getElementById('bot-size-display').innerText = this.value"></div>
+                    <div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Hareket Modu</label><select id="bot-move-type" class="w-full medieval-input rounded px-2 py-1 text-xs"><option value="fixed">Sabit (Durur)</option><option value="random">Rastgele Gezinir</option><option value="patrol">Devriye (Rota)</option></select></div>
+                    
+                    <div class="border-t border-[--medieval-border] pt-4 mt-2">
+                        <label class="flex items-center gap-2 text-xs text-[--medieval-gold] font-bold cursor-pointer"><input type="checkbox" id="bot-merchant-check" onchange="toggleBotShopUI()" class="w-4 h-4 accent-[#d4af37]"> Bu NPC Tüccar/Bankacı Mı?</label>
+                    </div>
+                    <div id="bot-shop-config" class="hidden flex flex-col gap-2">
+                        <div id="bot-shop-items-list" class="flex flex-col gap-1 max-h-32 overflow-y-auto"></div>
+                        <select id="shop-item-type" class="medieval-input rounded px-2 py-1 text-xs w-full"><option value="item">Normal Eşya</option><option value="beer">Bira/İçki</option><option value="instrument">Enstrüman</option><option value="bank">BANKACI (Kasa)</option><option value="map">Harita (Minimap)</option><option value="light">Fener/Işık</option><option value="camp">Kamp Ateşi</option></select>
+                        <input type="text" id="shop-item-name" placeholder="Eşya Adı" class="medieval-input rounded px-2 py-1 text-xs w-full">
+                        <div class="flex gap-2">
+                            <input type="number" id="shop-item-price" placeholder="Altın" class="medieval-input rounded px-2 py-1 text-xs w-16 text-center">
+                            <button onclick="addBotShopItem()" class="medieval-btn px-2 py-1 rounded text-xs font-bold flex-1 text-[#a7f3d0]">+ Ekle</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sağ Taraf: Diyalog Ağacı İnşaası -->
+                <div class="w-2/3 flex flex-col gap-4">
+                    <h3 class="text-xl text-[--medieval-gold] cinzel mb-2 text-center border-b border-[--medieval-border] pb-2">Diyalog Ağacı</h3>
+                    
+                    <div class="flex items-center gap-2 bg-black/60 p-2 rounded border border-[--medieval-border]">
+                        <span class="text-xs text-[--medieval-gold] font-bold">Mevcut Düğüm:</span>
+                        <select id="dt-node-select" class="medieval-input rounded px-2 py-1 text-xs flex-1" onchange="loadDialogNode(this.value)"></select>
+                        <button onclick="createDialogNodePrompt()" class="medieval-btn px-2 py-1 rounded text-xs bg-blue-900 border-blue-500 text-blue-200">+ Yeni Düğüm</button>
+                    </div>
+
+                    <div class="flex flex-col gap-2 flex-1">
+                        <label class="text-xs text-[--medieval-gold] cinzel">Botun Bu Aşamada Söyleyecekleri:</label>
+                        <textarea id="dt-node-text" class="medieval-input w-full h-24 p-2 text-sm rounded resize-none" oninput="saveCurrentDialogNode()"></textarea>
+                        
+                        <label class="text-xs text-[--medieval-gold] cinzel mt-2 border-t border-[--medieval-border] pt-2">Oyuncunun Cevap Seçenekleri:</label>
+                        <div id="dt-options-list" class="flex flex-col gap-2 max-h-32 overflow-y-auto p-2 bg-black/40 border border-gray-600 rounded"></div>
+                        
+                        <div class="flex gap-2 items-center bg-black/60 p-2 border border-gray-600 rounded">
+                            <input type="text" id="dt-opt-text" placeholder="Seçenek (Örn: Kimsin sen?)" class="medieval-input rounded px-2 py-1 text-xs flex-[2]">
+                            <select id="dt-opt-target" class="medieval-input rounded px-2 py-1 text-xs flex-1">
+                                <!-- JS Dolduracak -->
+                            </select>
+                            <select id="dt-opt-action" class="medieval-input rounded px-2 py-1 text-xs flex-1">
+                                <option value="NONE">Eylem Yok</option>
+                                <option value="TRADE">Tüccarı Aç</option>
+                                <option value="CLOSE">Diyalogu Kapat</option>
+                            </select>
+                            <button onclick="addDialogOption()" class="medieval-btn px-3 py-1 rounded text-xs font-bold text-[#a7f3d0]">+</button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between gap-3 border-t border-[--medieval-border] pt-4 mt-auto">
+                        <button onclick="cancelBotCreation()" class="text-red-400 font-bold cinzel text-sm px-6 py-2">İptal</button>
+                        <button onclick="saveBotCreation()" class="medieval-btn px-8 py-2 rounded font-bold cinzel shadow-[0_0_10px_rgba(5,150,105,0.5)]" style="filter: hue-rotate(90deg);">Varlığı Mühürle</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ENVANTER -->
         <div id="inventory-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
             <div class="medieval-panel p-8 max-w-2xl w-full border-[#059669]">
@@ -282,60 +408,6 @@
                 <div id="note-read-img-container" class="mb-4 hidden text-center"><img id="note-read-img" class="max-w-full h-auto max-h-48 mx-auto border border-[#8d6e63] rounded shadow-sm"></div>
                 <p id="note-read-text" class="text-xl text-[#3e2723] handwriting leading-relaxed min-h-[100px] whitespace-pre-wrap text-center">Burası notun içeriği...</p>
                 <div class="mt-8 flex justify-between items-center gap-4"><button onclick="document.getElementById('note-read-modal').classList.add('hidden')" class="bg-transparent border-2 border-[#8d6e63] text-[#5d4037] px-6 py-2 rounded text-sm cinzel font-bold hover:bg-[#8d6e63]/20">Geri Koy</button><button onclick="takeNoteToInventory()" class="medieval-btn px-6 py-2 rounded text-sm cinzel font-bold shadow-lg">🎒 Çantama Al</button></div>
-            </div>
-        </div>
-
-        <!-- GM BOT EKLEME MODALI (METİN AĞACI İLE) -->
-        <div id="bot-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
-            <div class="medieval-panel p-6 max-w-2xl w-full border-[#059669] max-h-[90vh] overflow-y-auto">
-                <h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center" id="bot-modal-title">Gezgin / NPC Kaydı</h3>
-                <div class="flex gap-4 mb-4">
-                    <div class="flex flex-col items-center gap-2 w-1/3">
-                        <div class="relative w-24 h-24 rounded-full border-2 border-[#059669] bg-black/50 flex items-center justify-center overflow-hidden"><img id="bot-preview" class="w-full h-full object-cover hidden" /><span id="bot-placeholder" class="text-[--medieval-text] opacity-50 text-xs text-center px-2 italic">Resim</span></div>
-                        <label class="cursor-pointer medieval-btn px-3 py-1 rounded text-xs cinzel w-full text-center" style="filter: hue-rotate(90deg);">Yükle<input type="file" accept="image/*" class="hidden" onchange="handleBotImageUpload(event)"></label>
-                    </div>
-                    <div class="w-2/3 flex flex-col gap-3">
-                        <div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">İsim</label><input type="text" id="bot-name-input" class="w-full medieval-input rounded px-3 py-1 text-sm"></div>
-                        <div class="flex gap-2 items-center"><div class="flex-1"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Boyut Çapı (<span id="bot-size-display">20</span>)</label><input type="range" id="bot-size-input" min="10" max="60" value="20" class="w-full" oninput="document.getElementById('bot-size-display').innerText = this.value"></div></div>
-                        <div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Hareket Modu</label><select id="bot-move-type" class="w-full medieval-input rounded px-2 py-1 text-xs"><option value="fixed">Sabit (Durur)</option><option value="random">Rastgele Gezinir</option><option value="patrol">Özel Rota (Devriye)</option></select></div>
-                    </div>
-                </div>
-                
-                <div class="mb-4"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">İlk Karşılaşma (Selamlama)</label><input type="text" id="bot-greeting-input" class="w-full medieval-input rounded px-3 py-1 text-sm" placeholder="Örn: Merhaba yabancı."></div>
-                
-                <!-- DİYALOG AĞACI -->
-                <div class="border-t border-[--medieval-border] pt-4 mb-4">
-                    <h4 class="text-sm text-[--medieval-gold] cinzel mb-2">Sohbet ve Diyalog Ağacı</h4>
-                    <div class="bg-black/40 p-3 rounded border border-[--medieval-border]">
-                        <div id="bot-dialog-list" class="flex flex-col gap-2 mb-3 max-h-32 overflow-y-auto"></div>
-                        <div class="flex flex-col gap-2 border-t border-[--medieval-border] pt-2">
-                            <input type="text" id="dialog-q" placeholder="Oyuncu Seçeneği (Örn: Kimsin sen?)" class="medieval-input rounded px-2 py-1 text-xs w-full">
-                            <input type="text" id="dialog-a" placeholder="Botun Cevabı" class="medieval-input rounded px-2 py-1 text-xs w-full">
-                            <div class="flex gap-2">
-                                <select id="dialog-action" class="medieval-input rounded px-2 py-1 text-xs flex-1">
-                                    <option value="NONE">Sadece Cevap Ver</option>
-                                    <option value="TRADE">Cevapla ve Tüccarı Aç</option>
-                                </select>
-                                <button onclick="addBotDialog()" class="medieval-btn px-3 py-1 rounded text-xs font-bold text-[#a7f3d0]">+ Ekle</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="border-t border-[--medieval-border] pt-4 mb-4"><label class="flex items-center gap-2 text-sm text-[--medieval-gold] font-bold cursor-pointer"><input type="checkbox" id="bot-merchant-check" onchange="toggleBotShopUI()" class="w-4 h-4 accent-[#d4af37]"> Bu NPC Bir Tüccar Veya Bankacı Mı?</label></div>
-                <div id="bot-shop-config" class="hidden bg-black/40 p-3 rounded border border-[--medieval-border] mb-4">
-                    <h4 class="text-xs text-[--medieval-gold] cinzel mb-2">Dükkan Eşyaları (Bankacı için tip seçin)</h4>
-                    <div id="bot-shop-items-list" class="flex flex-col gap-2 mb-3 max-h-32 overflow-y-auto"></div>
-                    <div class="flex gap-2 items-end border-t border-[--medieval-border] pt-2 flex-wrap">
-                        <select id="shop-item-type" class="medieval-input rounded px-2 py-1 text-xs w-24 h-8"><option value="item">Normal</option><option value="beer">Bira/İçki</option><option value="instrument">Enstrüman</option><option value="bank">BANKACI NPC</option><option value="map">Boş Harita</option><option value="light">Meşale/Kandil</option><option value="camp">Kamp Ateşi</option></select>
-                        <div class="w-10 h-10 border border-[#d4af37] flex-shrink-0 flex items-center justify-center bg-black overflow-hidden relative"><img id="temp-shop-img-preview" class="w-full h-full object-cover hidden"><span id="temp-shop-img-placeholder" class="text-[8px] text-center opacity-50">Resim</span></div>
-                        <label class="cursor-pointer medieval-btn px-2 py-2 rounded text-xs text-center w-16">Seç<input type="file" class="hidden" accept="image/*" onchange="handleTempShopItemImage(event)"></label>
-                        <input type="text" id="shop-item-name" placeholder="Eşya Adı" class="medieval-input rounded px-2 py-1 text-xs flex-1 h-8">
-                        <input type="number" id="shop-item-price" placeholder="Altın" class="medieval-input rounded px-2 py-1 text-xs w-16 h-8 text-center">
-                        <button onclick="addBotShopItem()" class="medieval-btn px-3 py-1 rounded text-xs font-bold h-8 text-[#a7f3d0]">+ Ekle</button>
-                    </div>
-                </div>
-                <div class="flex justify-between gap-3 border-t border-[--medieval-border] pt-4"><button onclick="cancelBotCreation()" class="text-red-400 font-bold cinzel text-sm">İptal</button><button onclick="saveBotCreation()" class="medieval-btn px-6 py-2 rounded font-bold cinzel" style="filter: hue-rotate(90deg);">Yerleştir</button></div>
             </div>
         </div>
 
@@ -389,43 +461,17 @@
             </div>
         </div>
 
-        <!-- TAKAS MODALI -->
-        <div id="trade-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto">
-            <div class="medieval-panel p-6 max-w-4xl w-full border-[#d4af37]">
-                <h3 class="text-3xl text-[--medieval-gold] cinzel mb-6 text-center border-b border-[--medieval-border] pb-2">Ticaret Anlaşması</h3>
-                <div class="flex gap-6 h-80">
-                    <div class="flex-1 bg-black/50 p-4 rounded border border-gray-600 flex flex-col relative" id="trade-pane-me">
-                        <h4 class="text-lg font-bold text-[#fcd34d] cinzel mb-2 text-center">Senin Teklifin</h4>
-                        <div class="flex gap-2 items-center mb-3"><span class="text-xl">💰</span><input type="number" id="trade-my-gold" class="medieval-input w-full p-2 text-center text-lg rounded font-bold" value="0" min="0" onchange="updateTradeOffer()"></div>
-                        <div class="text-xs opacity-70 mb-1">Çantandan eşya ekle:</div>
-                        <div id="trade-my-items" class="flex-1 bg-black/40 border border-gray-700 p-2 overflow-y-auto grid grid-cols-4 gap-2 content-start rounded"></div>
-                        <div class="absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded hidden" id="trade-my-status">Kilitli</div>
-                    </div>
-                    <div class="flex-1 bg-black/50 p-4 rounded border border-gray-600 flex flex-col relative" id="trade-pane-them">
-                        <h4 class="text-lg font-bold text-gray-300 cinzel mb-2 text-center" id="trade-their-name">Karşı Taraf</h4>
-                        <div class="flex gap-2 items-center mb-3"><span class="text-xl">💰</span><input type="number" id="trade-their-gold" class="medieval-input w-full p-2 text-center text-lg rounded font-bold" value="0" disabled></div>
-                        <div class="text-xs opacity-70 mb-1">Onun teklifi:</div>
-                        <div id="trade-their-items" class="flex-1 bg-black/40 border border-gray-700 p-2 overflow-y-auto grid grid-cols-4 gap-2 content-start rounded"></div>
-                        <div class="absolute top-2 right-2 text-xs font-bold px-2 py-1 rounded hidden" id="trade-their-status">Kilitli</div>
-                    </div>
-                </div>
-                <div class="flex justify-between items-center mt-6 pt-4 border-t border-[--medieval-border]">
-                    <button onclick="cancelTrade()" class="text-red-400 font-bold cinzel px-6 py-2">Masadan Kalk</button>
-                    <div class="text-[--medieval-text] italic text-sm text-center flex-1" id="trade-info-text">Teklifini hazırla ve kilitle.</div>
-                    <button onclick="lockTrade()" id="trade-lock-btn" class="medieval-btn px-8 py-3 rounded font-bold cinzel text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)]">Kilitle</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div id="yt-players-container" style="display: none;"></div>
 
     <script>
+        // --- GLOBAL HAFIZA ---
         const MemoryStore = {
             maps: [], mainMapId: null, weather: 'NONE', announcement: null,
             environmentColor: "rgba(0,0,0,0)", speedMultiplier: 1.0, worldTime: { hour: 12, minute: 0, day: 1, season: 'Güz' },
             player: {
-                username: "", name: "", image: null, wardrobe: [], inventory: [], gold: 0, bankGold: 0, stats: { str:5, agi:5, int:5, per:5 },
+                username: "", name: "", image: null, wardrobe: [], inventory: [], gold: 0, bankGold: 0, stats: { str:5, agi:5, int:5, per:5, con:5, cha:5 },
                 size: 18, x: null, y: null, visualX: null, visualY: null, targetX: null, targetY: null,
                 baseSpeed: 5, activeBubble: null, currentMapId: null, maxHp: 100, hp: 100,
                 isGhost: true, isDisguised: false, drunkTimer: 0
@@ -446,7 +492,10 @@
         let editStartX = 0, editStartY = 0; let editCurrentX = 0, editCurrentY = 0;
         let draggedObj = null; let draggedObjType = null; let dragOffX = 0, dragOffY = 0;
         let editingPathBot = null; let tempRoofPoints = []; let tempTPRect = null; let tempMusicRect = null;
-        let tempBotData = { isNew: true, ref: null, image: null, shop: [], dialogs: [] }; let tempShopItemImageBase64 = null; 
+        
+        // Yeni Bot/Diyalog değişkenleri
+        let tempBotData = { isNew: true, ref: null, image: null, shop: [], dialogNodes: { 'root': { text: '', options: [] } } }; 
+        let currentEditingNodeId = 'root'; let tempShopItemImageBase64 = null; 
         let tempNoteCoords = null; let tempNoteImgBase64 = null;
         
         let currentTrade = null; let tradeMyStagedItems = []; let tradeRequesterId = null;
@@ -479,10 +528,13 @@
                 MemoryStore.environmentColor = serverStateParam.environmentColor || "rgba(0,0,0,0)"; MemoryStore.speedMultiplier = serverStateParam.speedMultiplier || 1.0; 
                 MemoryStore.worldTime = serverStateParam.worldTime || { hour: 12, minute: 0, day: 1, season: 'Güz' };
                 
-                MemoryStore.player.gold = pData.gold || 0; MemoryStore.player.bankGold = pData.bankGold || 0; MemoryStore.player.hp = pData.hp || 100; MemoryStore.player.maxHp = pData.maxHp || 100;
+                MemoryStore.player.gold = pData.gold || 0; MemoryStore.player.bankGold = pData.bankGold || 0; 
                 MemoryStore.player.inventory = pData.inventory || []; MemoryStore.player.wardrobe = pData.wardrobe || [];
                 MemoryStore.player.name = pData.name || username; MemoryStore.player.image = pData.image || null; MemoryStore.player.size = pData.size || 18;
-                MemoryStore.player.stats = pData.stats || {str:5, agi:5, int:5, per:5};
+                MemoryStore.player.stats = pData.stats || {str:5, agi:5, int:5, per:5, con:5, cha:5};
+
+                updateDerivedStats();
+                MemoryStore.player.hp = Math.min(pData.hp || MemoryStore.player.maxHp, MemoryStore.player.maxHp);
 
                 if(MemoryStore.player.image) { document.getElementById('char-preview').src = MemoryStore.player.image; document.getElementById('char-preview').classList.remove('hidden'); document.getElementById('char-placeholder').classList.add('hidden'); }
                 updateStatUI();
@@ -535,26 +587,45 @@
         window.addEventListener('keydown', (e) => {
             if (MemoryStore.gameState === 'GAME') {
                 const chatInput = document.getElementById('chat-input');
-                if (e.key === 'Enter') { if (document.activeElement !== chatInput) toggleChat(); } else if (e.key === 'Escape') { if(tempRoofPoints.length > 0) tempRoofPoints = []; else { chatInput.blur(); toggleChat(); document.getElementById('whisper-suggestions').classList.add('hidden'); } } 
+                if (e.key === 'Enter') { if (document.activeElement !== chatInput) toggleChat(); } 
+                else if (e.key === 'Escape') { if(tempRoofPoints.length > 0) tempRoofPoints = []; else { chatInput.blur(); document.getElementById('chat-container').classList.add('hidden'); document.getElementById('chat-hint').classList.remove('hidden'); document.getElementById('whisper-suggestions').classList.add('hidden'); } } 
                 else if (e.key.toLowerCase() === 't' && document.activeElement !== chatInput) { tradeInteraction(); }
                 else if (e.key.toLowerCase() === 'e' && document.activeElement !== chatInput && MemoryStore.role === 'PLAYER') { triggerInteraction(); }
+                else if (e.key.toLowerCase() === 'k' && document.activeElement !== chatInput && MemoryStore.role === 'PLAYER') { lockInteraction(); }
             }
             if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT' && document.activeElement.tagName !== 'TEXTAREA') keys[e.key.toLowerCase()] = true;
         });
         window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT' && document.activeElement.tagName !== 'TEXTAREA') keys[e.key.toLowerCase()] = false; });
 
-        // Scroll Zoom
         canvas.addEventListener('wheel', (e) => { if (MemoryStore.role === 'GM' && MemoryStore.gameState === 'GAME') { e.preventDefault(); const zoomAmount = e.deltaY > 0 ? 0.9 : 1.1; gmZoom *= zoomAmount; gmZoom = Math.max(0.3, Math.min(gmZoom, 3.0)); } }, {passive: false});
 
-        // STAT SİSTEMİ
-        function updateStatUI() {
-            const st = MemoryStore.player.stats; let total = st.str + st.agi + st.int + st.per; let left = 30 - total; // Başlangıç 5'er (20), 10 puan serbest
-            document.getElementById('stat-points-left').innerText = left; document.getElementById('stat-val-str').innerText = st.str; document.getElementById('stat-val-agi').innerText = st.agi; document.getElementById('stat-val-int').innerText = st.int; document.getElementById('stat-val-per').innerText = st.per;
+        // STAT VE SEKME SİSTEMİ
+        function switchCharTab(tabId) {
+            document.getElementById('tab-gorunum').classList.add('hidden');
+            document.getElementById('tab-kabiliyet').classList.add('hidden');
+            document.getElementById('btn-tab-gorunum').classList.remove('active');
+            document.getElementById('btn-tab-kabiliyet').classList.remove('active');
+            
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('btn-' + tabId).classList.add('active');
         }
+
+        function updateDerivedStats() {
+            MemoryStore.player.maxHp = 50 + (MemoryStore.player.stats.con * 10);
+            MemoryStore.player.baseSpeed = 3 + (MemoryStore.player.stats.agi * 0.4);
+        }
+
+        function updateStatUI() {
+            const st = MemoryStore.player.stats; let total = st.str + st.agi + st.int + st.per + st.con + st.cha; let left = 45 - total; // Başlangıç 5'er (30), 15 puan serbest
+            document.getElementById('stat-points-left').innerText = left; 
+            ['str','agi','int','per','con','cha'].forEach(s => { document.getElementById('stat-val-'+s).innerText = st[s]; });
+        }
+
         function adjustStat(stat, dir) {
-            const st = MemoryStore.player.stats; let total = st.str + st.agi + st.int + st.per; let left = 30 - total;
-            if(dir > 0 && left > 0) { st[stat]++; } else if (dir < 0 && st[stat] > 1) { st[stat]--; }
-            updateStatUI(); savePlayerStats();
+            const st = MemoryStore.player.stats; let total = st.str + st.agi + st.int + st.per + st.con + st.cha; let left = 45 - total;
+            if(dir > 0 && left > 0 && st[stat] < 15) { st[stat]++; } else if (dir < 0 && st[stat] > 5) { st[stat]--; }
+            updateStatUI(); 
+            updateDerivedStats();
         }
 
         // CROP
@@ -569,13 +640,20 @@
         function selectWardrobeImage(index) { 
             if(MemoryStore.player.wardrobe[index]) { 
                 MemoryStore.player.image = MemoryStore.player.wardrobe[index]; 
-                document.getElementById('char-preview').src = MemoryStore.player.image; document.getElementById('char-preview').classList.remove('hidden'); document.getElementById('char-placeholder').classList.add('hidden'); updateWardrobeUI(); savePlayerStats();
+                document.getElementById('char-preview').src = MemoryStore.player.image; document.getElementById('char-preview').classList.remove('hidden'); document.getElementById('char-placeholder').classList.add('hidden'); updateWardrobeUI();
                 if (MemoryStore.gameState === 'GAME' && !MemoryStore.player.isGhost) { socket.emit('player_update', { mapId: MemoryStore.player.currentMapId, visualX: MemoryStore.player.visualX || MemoryStore.player.x, visualY: MemoryStore.player.visualY || MemoryStore.player.y, size: MemoryStore.player.size, name: MemoryStore.player.name, image: MemoryStore.player.image, isGhost: false }); }
             } 
         }
         function updateWardrobeUI() { const list = document.getElementById('wardrobe-list-ui'); const igList = document.getElementById('in-game-wardrobe-list'); list.innerHTML = ''; igList.innerHTML = ''; if(MemoryStore.player.wardrobe.length === 0) { list.innerHTML = '<span class="text-xs italic opacity-50">Henüz portre yüklenmedi.</span>'; return; } MemoryStore.player.wardrobe.forEach((src, idx) => { const isSelected = MemoryStore.player.image === src; const html = `<div onclick="selectWardrobeImage(${idx})" class="w-12 h-12 rounded-full border-2 cursor-pointer overflow-hidden ${isSelected ? 'border-[--medieval-gold] shadow-[0_0_10px_gold]' : 'border-gray-600'}"><img src="${src}" class="w-full h-full object-cover" /></div>`; list.innerHTML += html; igList.innerHTML += html; }); }
         function updateCharPreviewSize(val) { document.getElementById('size-val-display').innerText = val; const scale = parseInt(val) / 18; document.getElementById('char-preview-container').style.transform = `scale(${scale})`; }
-        function saveCharacter() { MemoryStore.player.name = document.getElementById('char-name-input').value.trim() || MemoryStore.player.username; MemoryStore.player.size = parseInt(document.getElementById('char-size-input').value) || 18; document.getElementById('menu-player-name').innerText = MemoryStore.player.name; savePlayerStats(); if(MemoryStore.role === 'PLAYER') showScreen('screen-player-menu'); else showScreen('screen-gm-menu'); }
+        function saveCharacter() { 
+            MemoryStore.player.name = document.getElementById('char-name-input').value.trim() || MemoryStore.player.username; 
+            MemoryStore.player.size = parseInt(document.getElementById('char-size-input').value) || 18; 
+            document.getElementById('menu-player-name').innerText = MemoryStore.player.name; 
+            updateDerivedStats();
+            savePlayerStats(); 
+            if(MemoryStore.role === 'PLAYER') showScreen('screen-player-menu'); else showScreen('screen-gm-menu'); 
+        }
         function toggleWardrobeModal() { document.getElementById('wardrobe-modal').classList.toggle('hidden'); }
         
         function toggleInventoryModal() { const modal = document.getElementById('inventory-modal'); modal.classList.toggle('hidden'); if(!modal.classList.contains('hidden')) renderInventory(); }
@@ -588,12 +666,11 @@
             }); 
         }
 
-        // ENVANTER EŞYA KULLANIMI
         function useItem(idx) {
             const item = MemoryStore.player.inventory[idx];
             if(item.type === 'beer') {
                 sendRawChatMessage(`* ${item.name} içti ve midesi ısındı. *`);
-                MemoryStore.player.drunkTimer = 300; // 300 frame sarhoş
+                MemoryStore.player.drunkTimer = 300; 
                 MemoryStore.player.inventory.splice(idx, 1);
             } else if (item.type === 'instrument') {
                 sendRawChatMessage(`* ${item.name} çaldı ve neşeli bir melodi duyuldu. 🎵 *`);
@@ -617,14 +694,8 @@
 
         socket.on('item_action_receive', (mapId, actionType, x, y, data) => {
             if(mapId !== MemoryStore.player.currentMapId) return;
-            if(actionType === 'instrument') {
-                // Etrafta nota çıkar
-                const p = { x: x, y: y-20, speedY: -2, life: 60, type: 'note' };
-                weatherParticles.push(p);
-            } else if (actionType === 'camp') {
-                // Yere kamp ateşi koy (sadece client görsel)
-                weatherParticles.push({ x: x, y: y, life: 3000, type: 'camp' });
-            }
+            if(actionType === 'instrument') { const p = { x: x, y: y-20, speedY: -2, life: 60, type: 'note' }; weatherParticles.push(p); } 
+            else if (actionType === 'camp') { weatherParticles.push({ x: x, y: y, life: 3000, type: 'camp' }); }
         });
 
         // Ticaret (Trade) Mantığı
@@ -726,7 +797,7 @@
         function renderGMMapList() { const c = document.getElementById('gm-map-list'); c.innerHTML = MemoryStore.maps.length === 0 ? '<span class="text-sm opacity-50 italic">Kayıtlı diyar yok.</span>' : ''; MemoryStore.maps.forEach(map => { const isMain = MemoryStore.mainMapId === map.id; c.innerHTML += `<div class="flex items-center justify-between bg-black/40 p-2 border border-[--medieval-border] rounded mb-2"><div class="flex items-center gap-3"><img src="${map.imgData}" class="w-8 h-8 rounded-full border border-[--medieval-gold] object-cover"><div class="font-bold text-[--medieval-gold] cinzel text-sm">${map.name} ${isMain ? '<span class="text-[#059669]">★</span>' : ''}</div></div><div class="flex gap-1">${!isMain ? `<button onclick="MemoryStore.mainMapId='${map.id}';renderGMMapList()" class="px-2 py-1 bg-[#059669]/20 text-[#059669] border border-[#059669] rounded text-xs cinzel font-bold">Ana Yap</button>` : ''}<button onclick="joinMap('${map.id}')" class="px-3 py-1 medieval-btn rounded text-xs cinzel font-bold">Düzenle</button></div></div>`; }); }
         function gmUploadMap(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { const img = new Image(); img.src = e.target.result; img.onload = () => { const newMap = { id: generateId(), name: "Yeni Bölge", imgData: e.target.result, width: img.width, height: img.height, walls: [], tps: [], bots: [], roofs: [], notes: [], musicZones: [], doors: [], chests: [] }; socket.emit('gm_upload_map', newMap); MemoryStore.maps.push(newMap); if (MemoryStore.maps.length === 1) MemoryStore.mainMapId = newMap.id; joinMap(newMap.id); } }; reader.readAsDataURL(file); } event.target.value = ''; }
         function setEditorTool(tool) { editorTool = tool; tempRoofPoints = []; updateToolUI(); }
-        function updateToolUI() { ['tool-select', 'tool-wall_rect', 'tool-wall_circle', 'tool-wall_roof', 'tool-door', 'tool-chest', 'tool-tp', 'tool-bot', 'tool-path', 'tool-delete', 'tool-note', 'tool-book', 'tool-music', 'tool-board'].forEach(id => { const el = document.getElementById(id); if(el) { el.classList.remove('opacity-100', 'ring-2', 'ring-white'); el.classList.add('opacity-70'); } }); if (editorTool) { const el = document.getElementById(`tool-${editorTool.toLowerCase()}`); if(el) { el.classList.remove('opacity-70'); el.classList.add('opacity-100', 'ring-2', 'ring-white'); } } }
+        function updateToolUI() { ['tool-select', 'tool-wall', 'tool-wall_roof', 'tool-door', 'tool-chest', 'tool-tp', 'tool-bot', 'tool-path', 'tool-delete', 'tool-note', 'tool-book', 'tool-music', 'tool-board'].forEach(id => { const el = document.getElementById(id); if(el) { el.classList.remove('opacity-100', 'ring-2', 'ring-white'); el.classList.add('opacity-70'); } }); if (editorTool) { const el = document.getElementById(`tool-${editorTool.toLowerCase()}`); if(el) { el.classList.remove('opacity-70'); el.classList.add('opacity-100', 'ring-2', 'ring-white'); } } }
         function openGodMessageModal() { document.getElementById('god-message-modal').classList.remove('hidden'); }
         function sendGodMessage(forcedText = null) { const text = forcedText || document.getElementById('god-message-input').value.trim(); if(text) { socket.emit('gm_god_message', text); } document.getElementById('god-message-input').value = ''; document.getElementById('god-message-modal').classList.add('hidden'); }
         function triggerEarthquake() { screenShake = 30; sendGodMessage("Diyar sarsılıyor! Yere tutunun!"); }
@@ -747,8 +818,17 @@
         function buildWeatherParticles() { weatherParticles.length = 0; if(MemoryStore.weather !== 'NONE') { const isRain = MemoryStore.weather === 'RAIN'; for(let i=0; i<300; i++) { weatherParticles.push({ x: Math.random() * window.innerWidth * 1.5, y: Math.random() * window.innerHeight, speedY: isRain ? 15 + Math.random() * 10 : 3 + Math.random() * 2, speedX: isRain ? -2 - Math.random() * 2 : Math.random() * 2 - 1, length: isRain ? 10 + Math.random() * 10 : 0, size: isRain ? 1 : 1.5 + Math.random() * 2 }); } } }
         function toggleWeather() { let nextW = 'NONE'; if(MemoryStore.weather === 'NONE') nextW = 'RAIN'; else if(MemoryStore.weather === 'RAIN') nextW = 'SNOW'; socket.emit('gm_set_weather', nextW); }
 
+        function syncMapObjectsToServer() {
+            if (MemoryStore.role === 'GM' && currentLoadedMapData) {
+                socket.emit('gm_update_map_objects', currentLoadedMapData.id, {
+                    walls: currentLoadedMapData.walls || [], tps: currentLoadedMapData.tps || [], bots: currentLoadedMapData.bots || [], roofs: currentLoadedMapData.roofs || [],
+                    notes: currentLoadedMapData.notes || [], musicZones: currentLoadedMapData.musicZones || [], doors: currentLoadedMapData.doors || [], chests: currentLoadedMapData.chests || []
+                });
+            }
+        }
+
         // --- EDİTÖR ETKİLEŞİMLERİ ---
-        canvas.addEventListener('contextmenu', e => { e.preventDefault(); if (editorTool === 'WALL_ROOF' || editorTool === 'DOOR' || editorTool === 'CHEST') { tempRoofPoints = []; } });
+        canvas.addEventListener('contextmenu', e => { e.preventDefault(); if (editorTool === 'WALL_ROOF' || editorTool === 'DOOR' || editorTool === 'CHEST' || editorTool === 'WALL') { tempRoofPoints = []; } });
         canvas.addEventListener('mousedown', (e) => {
             if (MemoryStore.gameState !== 'GAME' || MemoryStore.role !== 'GM') return;
             if (e.button === 1 || e.button === 2) { isPanning = true; return; }
@@ -757,9 +837,10 @@
                 
                 if (editorTool === 'PATH') { let hit = currentLoadedMapData.bots.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (hit) { editingPathBot = hit; editingPathBot.path = []; editingPathBot.pathIndex = 0; } else if (editingPathBot) { if(!editingPathBot.path) editingPathBot.path = []; editingPathBot.path.push({x: pos.x, y: pos.y}); syncMapObjectsToServer(); } return; }
                 
-                if (editorTool === 'WALL_ROOF' || editorTool === 'DOOR' || editorTool === 'CHEST') {
+                if (editorTool === 'WALL_ROOF' || editorTool === 'DOOR' || editorTool === 'CHEST' || editorTool === 'WALL') {
                     if (tempRoofPoints.length > 2 && Math.hypot(pos.x - tempRoofPoints[0].x, pos.y - tempRoofPoints[0].y) < 20) {
                         if (editorTool === 'WALL_ROOF') { if (!currentLoadedMapData.roofs) currentLoadedMapData.roofs = []; currentLoadedMapData.roofs.push({ points: [...tempRoofPoints] }); }
+                        else if (editorTool === 'WALL') { if (!currentLoadedMapData.walls) currentLoadedMapData.walls = []; currentLoadedMapData.walls.push({ points: [...tempRoofPoints] }); }
                         else if (editorTool === 'DOOR') { if (!currentLoadedMapData.doors) currentLoadedMapData.doors = []; currentLoadedMapData.doors.push({ id: generateId(), points: [...tempRoofPoints], isLocked: false, isOpen: false }); }
                         else if (editorTool === 'CHEST') { if (!currentLoadedMapData.chests) currentLoadedMapData.chests = []; currentLoadedMapData.chests.push({ id: generateId(), points: [...tempRoofPoints], isLocked: false, items: [] }); }
                         tempRoofPoints = []; syncMapObjectsToServer();
@@ -783,16 +864,15 @@
                     dIdx = currentLoadedMapData.musicZones?.findIndex(m => Math.hypot(m.x - pos.x, m.y - pos.y) <= m.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.musicZones.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                     dIdx = currentLoadedMapData.bots?.findIndex(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.bots.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                     dIdx = currentLoadedMapData.tps?.findIndex(t => Math.hypot(t.x - pos.x, t.y - pos.y) <= t.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.tps.splice(dIdx, 1); syncMapObjectsToServer(); return; }
-                    dIdx = currentLoadedMapData.walls?.findIndex(w => { if (w.type === 'rect') return pos.x >= w.x && pos.x <= w.x + w.w && pos.y >= w.y && pos.y <= w.y + w.h; if (w.type === 'circle') return Math.hypot(w.x - pos.x, w.y - pos.y) <= w.radius; return false; }); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.walls.splice(dIdx, 1); syncMapObjectsToServer(); return; }
+                    dIdx = currentLoadedMapData.walls?.findIndex(w => isPointInPoly(pos.x, pos.y, w.points)); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.walls.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                 } else if (editorTool === 'SELECT') {
                     if (keys['shift']) {
-                        // Grup ışınlama kutusu başlangıcı
                         editorDrawing = true;
                     } else {
                         draggedObj = null; draggedObjType = null;
                         let hitBot = currentLoadedMapData.bots?.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (hitBot) { draggedObj = hitBot; draggedObjType = 'bot'; return; }
                         let hitTp = currentLoadedMapData.tps?.find(t => Math.hypot(t.x - pos.x, t.y - pos.y) <= t.radius); if (hitTp) { draggedObj = hitTp; draggedObjType = 'tp'; dragOffX = pos.x - hitTp.x; dragOffY = pos.y - hitTp.y; return; }
-                        let hitWall = currentLoadedMapData.walls?.find(w => { if (w.type === 'rect') return pos.x >= w.x && pos.x <= w.x + w.w && pos.y >= w.y && pos.y <= w.y + w.h; if (w.type === 'circle') return Math.hypot(w.x - pos.x, w.y - pos.y) <= w.radius; return false; }); if (hitWall) { draggedObj = hitWall; draggedObjType = 'wall'; dragOffX = pos.x - hitWall.x; dragOffY = pos.y - hitWall.y; return; }
+                        let hitWall = currentLoadedMapData.walls?.find(w => isPointInPoly(pos.x, pos.y, w.points)); if (hitWall) { draggedObj = hitWall; draggedObjType = 'wall'; dragOffX = pos.x - hitWall.points[0].x; dragOffY = pos.y - hitWall.points[0].y; return; }
                         let hitMusicEdge = currentLoadedMapData.musicZones?.find(mz => Math.abs(Math.hypot(mz.x - pos.x, mz.y - pos.y) - mz.radius) < 15); if(hitMusicEdge) { draggedObj = hitMusicEdge; draggedObjType = 'music_resize'; return; }
                         let hitMusicCenter = currentLoadedMapData.musicZones?.find(mz => Math.hypot(mz.x - pos.x, mz.y - pos.y) < 25); if(hitMusicCenter) { draggedObj = hitMusicCenter; draggedObjType = 'music_move'; dragOffX = pos.x - hitMusicCenter.x; dragOffY = pos.y - hitMusicCenter.y; return; }
                     }
@@ -807,7 +887,12 @@
                     const pos = getMouseWorldPos(e); editCurrentX = pos.x; editCurrentY = pos.y;
                     if (editorTool === 'SELECT' && draggedObj) { 
                         if (draggedObjType === 'bot') { draggedObj.x = pos.x; draggedObj.y = pos.y; if(draggedObj.spawnX) { draggedObj.spawnX = pos.x; draggedObj.spawnY = pos.y; } } 
-                        else if (draggedObjType === 'wall' || draggedObjType === 'tp') { draggedObj.x = pos.x - dragOffX; draggedObj.y = pos.y - dragOffY; }
+                        else if (draggedObjType === 'wall') { 
+                            let dx = pos.x - dragOffX - draggedObj.points[0].x; let dy = pos.y - dragOffY - draggedObj.points[0].y;
+                            draggedObj.points.forEach(pt => { pt.x += dx; pt.y += dy; });
+                            dragOffX = pos.x - draggedObj.points[0].x; dragOffY = pos.y - draggedObj.points[0].y;
+                        }
+                        else if (draggedObjType === 'tp') { draggedObj.x = pos.x - dragOffX; draggedObj.y = pos.y - dragOffY; }
                         else if (draggedObjType === 'music_resize') { draggedObj.radius = Math.max(20, Math.hypot(draggedObj.x - pos.x, draggedObj.y - pos.y)); }
                         else if (draggedObjType === 'music_move') { draggedObj.x = pos.x - dragOffX; draggedObj.y = pos.y - dragOffY; }
                     }
@@ -823,18 +908,15 @@
                 if (editorTool === 'SELECT' && draggedObj) {
                     if (draggedObjType === 'bot' && Math.hypot(editStartX - pos.x, editStartY - pos.y) < 5) { handleBotToolClick(draggedObj, pos.x, pos.y); }
                     draggedObj = null; draggedObjType = null; syncMapObjectsToServer();
-                } else if (editorDrawing && editorTool !== 'WALL_ROOF' && editorTool !== 'DOOR' && editorTool !== 'CHEST' && editorTool !== 'PATH') {
+                } else if (editorDrawing && editorTool !== 'WALL_ROOF' && editorTool !== 'DOOR' && editorTool !== 'CHEST' && editorTool !== 'WALL' && editorTool !== 'PATH') {
                     editorDrawing = false;
                     if (editorTool === 'SELECT' && keys['shift']) {
-                        // Grup ışınlama hedefi sor (sadece görsel)
                         let w = Math.abs(editCurrentX - editStartX); let h = Math.abs(editCurrentY - editStartY); let x = Math.min(editStartX, editCurrentX); let y = Math.min(editStartY, editCurrentY);
                         const bbox = {x, y, w, h};
                         const targetMapId = prompt("Bu alandaki herkes hangi haritaya (Map ID) gitsin?", MemoryStore.maps[0].id);
                         if(targetMapId) socket.emit('gm_teleport_action', 'group', bbox, targetMapId, 200, 200);
                     }
                     else if (editorTool === 'BOT') { handleBotToolClick(null, pos.x, pos.y); } 
-                    else if (editorTool === 'WALL_RECT') { let w = Math.abs(editCurrentX - editStartX); let h = Math.abs(editCurrentY - editStartY); let x = Math.min(editStartX, editCurrentX); let y = Math.min(editStartY, editCurrentY); if (w < 5 && h < 5) { w = 40; h = 40; x -= 20; y -= 20; } if(!currentLoadedMapData.walls) currentLoadedMapData.walls=[]; currentLoadedMapData.walls.push({ type: 'rect', x, y, w, h }); syncMapObjectsToServer(); } 
-                    else if (editorTool === 'WALL_CIRCLE') { let r = Math.hypot(editCurrentX - editStartX, editCurrentY - editStartY); if (r < 5) r = 25; if(!currentLoadedMapData.walls) currentLoadedMapData.walls=[]; currentLoadedMapData.walls.push({ type: 'circle', x: editStartX, y: editStartY, radius: r }); syncMapObjectsToServer(); } 
                     else if (editorTool === 'TP') { let r = Math.hypot(editCurrentX - editStartX, editCurrentY - editStartY); if (r < 5) r = 25; if (MemoryStore.maps.length <= 1) return showModal("Uyarı", "Bağlanacak başka harita yok."); tempTPRect = { x: editStartX, y: editStartY, radius: r }; openTPModal(); }
                     else if (editorTool === 'MUSIC') { let r = Math.hypot(editCurrentX - editStartX, editCurrentY - editStartY); if(r < 50) r = 150; tempMusicRect = { x: editStartX, y: editStartY, radius: r }; document.getElementById('music-modal').classList.remove('hidden'); }
                 }
@@ -869,28 +951,82 @@
             for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { let xi = poly[i].x, yi = poly[i].y; let xj = poly[j].x, yj = poly[j].y; let intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi); if (intersect) inside = !inside; } return inside;
         }
 
-        // --- BOT VE DİYALOG SİSTEMİ ---
+        // --- BOT VE DİYALOG SİSTEMİ (BRANCHING TREE) ---
         function handleBotToolClick(botRef, x, y) { 
             document.getElementById('bot-shop-items-list').innerHTML = ''; tempShopItemImageBase64 = null; 
             document.getElementById('temp-shop-img-preview').classList.add('hidden'); document.getElementById('temp-shop-img-placeholder').classList.remove('hidden'); 
+            
             if (botRef) { 
-                tempBotData = { isNew: false, ref: botRef, image: botRef.image, shop: JSON.parse(JSON.stringify(botRef.shop || [])), dialogs: JSON.parse(JSON.stringify(botRef.dialogs || [])) }; 
-                document.getElementById('bot-name-input').value = botRef.name; document.getElementById('bot-size-input').value = botRef.radius; document.getElementById('bot-size-display').innerText = botRef.radius; document.getElementById('bot-greeting-input').value = botRef.greeting || ""; document.getElementById('bot-merchant-check').checked = botRef.isMerchant || false; document.getElementById('bot-move-type').value = botRef.moveType || 'fixed'; 
-                if(botRef.image) { document.getElementById('bot-preview').src = botRef.image; document.getElementById('bot-preview').classList.remove('hidden'); document.getElementById('bot-placeholder').classList.add('hidden'); } else { document.getElementById('bot-preview').classList.add('hidden'); document.getElementById('bot-placeholder').classList.remove('hidden'); } renderBotShopItemsConfig(); renderBotDialogs();
+                tempBotData = { isNew: false, ref: botRef, image: botRef.image, shop: JSON.parse(JSON.stringify(botRef.shop || [])), dialogNodes: JSON.parse(JSON.stringify(botRef.dialogNodes || { 'root': { text: botRef.greeting || '', options: [] } })) }; 
+                document.getElementById('bot-name-input').value = botRef.name; document.getElementById('bot-size-input').value = botRef.radius; document.getElementById('bot-size-display').innerText = botRef.radius; document.getElementById('bot-merchant-check').checked = botRef.isMerchant || false; document.getElementById('bot-move-type').value = botRef.moveType || 'fixed'; 
+                if(botRef.image) { document.getElementById('bot-preview').src = botRef.image; document.getElementById('bot-preview').classList.remove('hidden'); document.getElementById('bot-placeholder').classList.add('hidden'); } else { document.getElementById('bot-preview').classList.add('hidden'); document.getElementById('bot-placeholder').classList.remove('hidden'); } 
+                renderBotShopItemsConfig(); 
             } else { 
-                tempBotData = { isNew: true, ref: { x, y }, image: null, shop: [], dialogs: [] }; 
-                document.getElementById('bot-name-input').value = ""; document.getElementById('bot-size-input').value = 20; document.getElementById('bot-size-display').innerText = 20; document.getElementById('bot-greeting-input').value = ""; document.getElementById('bot-merchant-check').checked = false; document.getElementById('bot-move-type').value = 'fixed'; document.getElementById('bot-preview').src = ""; document.getElementById('bot-preview').classList.add('hidden'); document.getElementById('bot-placeholder').classList.remove('hidden'); renderBotDialogs();
-            } toggleBotShopUI(); document.getElementById('bot-modal').classList.remove('hidden'); 
+                tempBotData = { isNew: true, ref: { x, y }, image: null, shop: [], dialogNodes: { 'root': { text: '', options: [] } } }; 
+                document.getElementById('bot-name-input').value = ""; document.getElementById('bot-size-input').value = 20; document.getElementById('bot-size-display').innerText = 20; document.getElementById('bot-merchant-check').checked = false; document.getElementById('bot-move-type').value = 'fixed'; document.getElementById('bot-preview').src = ""; document.getElementById('bot-preview').classList.add('hidden'); document.getElementById('bot-placeholder').classList.remove('hidden'); 
+            } 
+            toggleBotShopUI(); updateDialogNodeSelector(); loadDialogNode('root'); document.getElementById('bot-modal').classList.remove('hidden'); 
         }
 
-        function addBotDialog() {
-            const q = document.getElementById('dialog-q').value.trim(); const a = document.getElementById('dialog-a').value.trim(); const act = document.getElementById('dialog-action').value;
-            if(q && a) { if(!tempBotData.dialogs) tempBotData.dialogs = []; tempBotData.dialogs.push({q, a, action: act}); document.getElementById('dialog-q').value = ''; document.getElementById('dialog-a').value = ''; renderBotDialogs(); }
+        function updateDialogNodeSelector() {
+            const sel = document.getElementById('dt-node-select'); sel.innerHTML = '';
+            for(let id in tempBotData.dialogNodes) { sel.innerHTML += `<option value="${id}">${id}</option>`; }
+            sel.value = currentEditingNodeId;
+            updateOptionTargets();
         }
-        function renderBotDialogs() {
-            const c = document.getElementById('bot-dialog-list'); c.innerHTML = ''; if(!tempBotData.dialogs) return;
-            tempBotData.dialogs.forEach((d, i) => { c.innerHTML += `<div class="flex justify-between items-center text-[10px] bg-black/60 p-1 border border-gray-500 rounded"><div class="flex flex-col w-5/6"><span class="text-[--medieval-gold] font-bold truncate">S: ${d.q}</span><span class="text-gray-300 truncate">C: ${d.a}</span></div><button onclick="tempBotData.dialogs.splice(${i},1);renderBotDialogs()" class="text-red-400 font-bold px-2">X</button></div>`; });
+
+        function updateOptionTargets() {
+            const tgt = document.getElementById('dt-opt-target'); tgt.innerHTML = '';
+            for(let id in tempBotData.dialogNodes) { tgt.innerHTML += `<option value="${id}">${id}</option>`; }
         }
+
+        function createDialogNodePrompt() {
+            const name = prompt("Yeni düğüm için kısa bir ID girin (Örn: node2):");
+            if(name && name.trim() !== '' && !tempBotData.dialogNodes[name]) {
+                tempBotData.dialogNodes[name] = { text: '', options: [] };
+                currentEditingNodeId = name;
+                updateDialogNodeSelector();
+                loadDialogNode(name);
+            }
+        }
+
+        function loadDialogNode(nodeId) {
+            currentEditingNodeId = nodeId;
+            document.getElementById('dt-node-select').value = nodeId;
+            const node = tempBotData.dialogNodes[nodeId];
+            document.getElementById('dt-node-text').value = node.text || '';
+            renderDialogOptions();
+        }
+
+        function saveCurrentDialogNode() {
+            if(tempBotData.dialogNodes[currentEditingNodeId]) {
+                tempBotData.dialogNodes[currentEditingNodeId].text = document.getElementById('dt-node-text').value;
+            }
+        }
+
+        function addDialogOption() {
+            const txt = document.getElementById('dt-opt-text').value.trim();
+            const target = document.getElementById('dt-opt-target').value;
+            const action = document.getElementById('dt-opt-action').value;
+            
+            if(txt && tempBotData.dialogNodes[currentEditingNodeId]) {
+                tempBotData.dialogNodes[currentEditingNodeId].options.push({ text: txt, target: target, action: action });
+                document.getElementById('dt-opt-text').value = '';
+                renderDialogOptions();
+            }
+        }
+
+        function renderDialogOptions() {
+            const list = document.getElementById('dt-options-list'); list.innerHTML = '';
+            const node = tempBotData.dialogNodes[currentEditingNodeId];
+            if(!node || !node.options) return;
+            node.options.forEach((opt, idx) => {
+                let actText = opt.action === 'NONE' ? `-> Git: ${opt.target}` : `-> Eylem: ${opt.action}`;
+                list.innerHTML += `<div class="flex justify-between items-center text-[10px] bg-black/60 p-1 border border-gray-500 rounded"><span class="text-[--medieval-gold] font-bold">${opt.text} <span class="text-gray-400 font-normal ml-2">${actText}</span></span><button onclick="removeDialogOption(${idx})" class="text-red-400 font-bold px-2">X</button></div>`;
+            });
+        }
+
+        function removeDialogOption(idx) { tempBotData.dialogNodes[currentEditingNodeId].options.splice(idx, 1); renderDialogOptions(); }
 
         function handleBotImageUpload(e) { const file = e.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = function(evt) { tempBotData.image = evt.target.result; document.getElementById('bot-preview').src = evt.target.result; document.getElementById('bot-preview').classList.remove('hidden'); document.getElementById('bot-placeholder').classList.add('hidden'); }; reader.readAsDataURL(file); } e.target.value = ''; }
         function handleTempShopItemImage(e) { const file = e.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = function(evt) { tempShopItemImageBase64 = evt.target.result; document.getElementById('temp-shop-img-preview').src = evt.target.result; document.getElementById('temp-shop-img-preview').classList.remove('hidden'); document.getElementById('temp-shop-img-placeholder').classList.add('hidden'); }; reader.readAsDataURL(file); } e.target.value = ''; }
@@ -898,57 +1034,53 @@
         function renderBotShopItemsConfig() { const c = document.getElementById('bot-shop-items-list'); c.innerHTML = ''; tempBotData.shop.forEach((it, i) => { ctx.beginPath(); c.innerHTML += `<div class="flex justify-between items-center text-xs text-[--medieval-text] bg-black/60 p-2 rounded border border-[#d4af37]"><div class="flex items-center gap-2"><img src="${it.image || 'https://placehold.co/20x20/222/555?text=?'}" class="w-6 h-6 object-cover border border-[--medieval-border]"><span>${it.name} (${it.type}) - <span class="text-[#fcd34d] font-bold">${it.price} Altın</span></span></div><button onclick="tempBotData.shop.splice(${i},1);renderBotShopItemsConfig()" class="text-red-400 font-bold px-2">X</button></div>`; }); }
         function addBotShopItem() { const n = document.getElementById('shop-item-name').value; const p = parseInt(document.getElementById('shop-item-price').value); const type = document.getElementById('shop-item-type').value; if(n && p) { tempBotData.shop.push({name: n, price: p, image: tempShopItemImageBase64, type: type}); document.getElementById('shop-item-name').value=''; document.getElementById('shop-item-price').value=''; tempShopItemImageBase64 = null; document.getElementById('temp-shop-img-preview').classList.add('hidden'); document.getElementById('temp-shop-img-placeholder').classList.remove('hidden'); renderBotShopItemsConfig(); } }
         function cancelBotCreation() { document.getElementById('bot-modal').classList.add('hidden'); }
+        
         function saveBotCreation() { 
-            const name = document.getElementById('bot-name-input').value.trim() || "Gezgin"; const rad = parseInt(document.getElementById('bot-size-input').value) || 20; const greet = document.getElementById('bot-greeting-input').value.trim(); const isM = document.getElementById('bot-merchant-check').checked; const moveType = document.getElementById('bot-move-type').value; const hp = 100; const finalShop = JSON.parse(JSON.stringify(tempBotData.shop)); const finalDialogs = JSON.parse(JSON.stringify(tempBotData.dialogs));
-            if (tempBotData.isNew) { if(!currentLoadedMapData.bots) currentLoadedMapData.bots=[]; currentLoadedMapData.bots.push({ id: generateId(), name, image: tempBotData.image, x: tempBotData.ref.x, y: tempBotData.ref.y, spawnX: tempBotData.ref.x, spawnY: tempBotData.ref.y, radius: rad, greeting: greet, isMerchant: isM, moveType: moveType, path: [], pathIndex: 0, maxHp: hp, hp: hp, shop: finalShop, dialogs: finalDialogs }); } 
-            else { Object.assign(tempBotData.ref, { name, image: tempBotData.image, radius: rad, greeting: greet, isMerchant: isM, moveType: moveType, shop: finalShop, dialogs: finalDialogs }); } 
+            const name = document.getElementById('bot-name-input').value.trim() || "Gezgin"; const rad = parseInt(document.getElementById('bot-size-input').value) || 20; const isM = document.getElementById('bot-merchant-check').checked; const moveType = document.getElementById('bot-move-type').value; const hp = 100; const finalShop = JSON.parse(JSON.stringify(tempBotData.shop)); const finalNodes = JSON.parse(JSON.stringify(tempBotData.dialogNodes));
+            if (tempBotData.isNew) { if(!currentLoadedMapData.bots) currentLoadedMapData.bots=[]; currentLoadedMapData.bots.push({ id: generateId(), name, image: tempBotData.image, x: tempBotData.ref.x, y: tempBotData.ref.y, spawnX: tempBotData.ref.x, spawnY: tempBotData.ref.y, radius: rad, isMerchant: isM, moveType: moveType, path: [], pathIndex: 0, maxHp: hp, hp: hp, shop: finalShop, dialogNodes: finalNodes }); } 
+            else { Object.assign(tempBotData.ref, { name, image: tempBotData.image, radius: rad, isMerchant: isM, moveType: moveType, shop: finalShop, dialogNodes: finalNodes }); } 
             if(tempBotData.image) getCachedImage(tempBotData.image); document.getElementById('bot-modal').classList.add('hidden'); syncMapObjectsToServer(); 
         }
 
         let currentInteractingBot = null;
         function openBotDialog(bot) {
             currentInteractingBot = bot; document.getElementById('dialog-bot-name').innerText = bot.name; document.getElementById('dialog-bot-img').src = bot.image || 'https://placehold.co/40x40/222/555?text=?';
-            showDialogStep(bot.greeting || "..."); document.getElementById('dialog-modal').classList.remove('hidden');
+            if(!bot.dialogNodes || !bot.dialogNodes['root']) { showDialogStep({text:"...", options:[]}); } else { showDialogStep(bot.dialogNodes['root']); }
+            document.getElementById('dialog-modal').classList.remove('hidden');
         }
 
-        function showDialogStep(text, hideOptions = false) {
-            document.getElementById('dialog-bot-text').innerText = text; const c = document.getElementById('dialog-options'); c.innerHTML = '';
-            if (!hideOptions && currentInteractingBot.dialogs && currentInteractingBot.dialogs.length > 0) {
-                currentInteractingBot.dialogs.forEach((d, i) => { c.innerHTML += `<button onclick="selectDialogOption(${i})" class="medieval-btn py-2 px-4 rounded text-sm text-left cinzel border border-gray-600 hover:border-[--medieval-gold] transition-colors whitespace-normal break-words">${d.q}</button>`; });
-            }
-            if (hideOptions) { c.innerHTML += `<button onclick="showDialogStep(currentInteractingBot.greeting)" class="medieval-btn py-2 px-4 rounded text-sm text-center cinzel border border-gray-600 text-gray-300">Geri Dön</button>`; }
-            if (currentInteractingBot.isMerchant) {
-                let txt = currentInteractingBot.shop.find(i=>i.type==='bank') ? "Bankayı Aç" : "Tüccar Malzemelerine Bak";
-                c.innerHTML += `<button onclick="openBotShopFromDialog()" class="medieval-btn py-2 px-4 rounded text-sm text-center cinzel border border-[--medieval-gold] text-[#fcd34d] shadow-[0_0_10px_rgba(212,175,55,0.3)]">${txt}</button>`;
+        function showDialogStep(node) {
+            document.getElementById('dialog-bot-text').innerText = node.text || "..."; const c = document.getElementById('dialog-options'); c.innerHTML = '';
+            if (node.options && node.options.length > 0) {
+                node.options.forEach((opt) => { 
+                    c.innerHTML += `<button onclick="selectDialogOption('${opt.target}', '${opt.action}')" class="medieval-btn py-2 px-4 rounded text-sm text-left cinzel border border-gray-600 hover:border-[--medieval-gold] transition-colors whitespace-normal break-words">${opt.text}</button>`; 
+                });
+            } else {
+                c.innerHTML += `<button onclick="closeDialogModal()" class="medieval-btn py-2 px-4 rounded text-sm text-center cinzel border border-gray-600 text-gray-300">Ayrıl</button>`;
             }
         }
 
-        function selectDialogOption(idx) {
-            const d = currentInteractingBot.dialogs[idx]; sendRawChatMessage(`/l ${d.q}`);
-            if (d.action === 'TRADE') { document.getElementById('dialog-bot-text').innerText = d.a; setTimeout(() => { openBotShopFromDialog(); }, 1500); } else { showDialogStep(d.a, true); }
+        function selectDialogOption(targetId, action) {
+            if (action === 'TRADE') { setTimeout(() => { openBotShopFromDialog(); }, 500); } 
+            else if (action === 'CLOSE') { closeDialogModal(); }
+            else {
+                if(currentInteractingBot && currentInteractingBot.dialogNodes[targetId]) { showDialogStep(currentInteractingBot.dialogNodes[targetId]); }
+                else { closeDialogModal(); }
+            }
         }
 
         function closeDialogModal() { document.getElementById('dialog-modal').classList.add('hidden'); currentInteractingBot = null; }
-
         function openBotShopFromDialog() { if(currentInteractingBot) { const b = currentInteractingBot; closeDialogModal(); openBotShop(b); } }
 
         function openBotShop(b) {
-            if(b.shop && b.shop.length > 0 && b.shop[0].type === 'bank') {
-                document.getElementById('bank-pocket-gold').innerText = MemoryStore.player.gold; document.getElementById('bank-vault-gold').innerText = MemoryStore.player.bankGold;
-                document.getElementById('bank-modal').classList.remove('hidden'); return;
-            }
+            if(b.shop && b.shop.length > 0 && b.shop[0].type === 'bank') { document.getElementById('bank-pocket-gold').innerText = MemoryStore.player.gold; document.getElementById('bank-vault-gold').innerText = MemoryStore.player.bankGold; document.getElementById('bank-modal').classList.remove('hidden'); return; }
             document.getElementById('shop-title').innerText = b.name; const sc = document.getElementById('shop-items-container'); sc.innerHTML = '';
             b.shop.forEach((it, idx) => { sc.innerHTML += `<div class="bg-black/60 p-3 rounded border border-[--medieval-border] flex flex-col items-center justify-between gap-2 text-center"><img src="${it.image || 'https://placehold.co/40x40/222/555?text=?'}" class="w-12 h-12 object-cover border border-[#d4af37]"><span class="text-xs font-bold text-[--medieval-text] w-full truncate">${it.name}</span><span class="text-[#fcd34d] font-bold text-sm">${it.price} 💰</span><button onclick="buyItem('${b.id}', ${idx})" class="medieval-btn px-4 py-1 rounded text-xs cinzel w-full">Satın Al</button></div>`; });
             document.getElementById('shop-modal').classList.remove('hidden');
         }
 
-        function bankAction(type) {
-            const amt = parseInt(document.getElementById('bank-amount').value);
-            if(amt && amt > 0) { socket.emit(type === 'deposit' ? 'bank_deposit' : 'bank_withdraw', MemoryStore.player.username, amt); }
-            document.getElementById('bank-amount').value = '';
-        }
+        function bankAction(type) { const amt = parseInt(document.getElementById('bank-amount').value); if(amt && amt > 0) { socket.emit(type === 'deposit' ? 'bank_deposit' : 'bank_withdraw', MemoryStore.player.username, amt); } document.getElementById('bank-amount').value = ''; }
         socket.on('bank_update', (gold, vault) => { MemoryStore.player.gold = gold; MemoryStore.player.bankGold = vault; document.getElementById('bank-pocket-gold').innerText = gold; document.getElementById('bank-vault-gold').innerText = vault; savePlayerStats(); updatePlayerUI(); });
-
         function buyItem(botId, itemIndex) { const bot = currentLoadedMapData.bots.find(b => b.id === botId); if(!bot || !bot.shop[itemIndex]) return; const item = bot.shop[itemIndex]; if(MemoryStore.player.gold >= item.price) { MemoryStore.player.gold -= item.price; updatePlayerUI(); MemoryStore.player.inventory.push({...item}); sendRawChatMessage(`*${item.name} satın aldı.*`); savePlayerStats(); } else { showModal("Yetersiz Altın", "Bunu alacak kadar altının yok."); } }
 
         const chatInput = document.getElementById('chat-input');
@@ -1044,8 +1176,11 @@
                 if(nearbyInteractable.ref.image) { document.getElementById('note-read-img').src = nearbyInteractable.ref.image; document.getElementById('note-read-img-container').classList.remove('hidden'); } else { document.getElementById('note-read-img-container').classList.add('hidden'); }
                 document.getElementById('note-read-modal').classList.remove('hidden');
             }
-            else if(nearbyInteractable.type === 'DOOR') { socket.emit('toggle_lock', MemoryStore.player.currentMapId, 'DOOR', nearbyInteractable.ref.id); sendRawChatMessage("*Kapıyı iter*"); }
-            else if(nearbyInteractable.type === 'CHEST') { socket.emit('toggle_lock', MemoryStore.player.currentMapId, 'CHEST', nearbyInteractable.ref.id); sendRawChatMessage("*Sandığı karıştırır*"); }
+            else if(nearbyInteractable.type === 'DOOR') { socket.emit('toggle_door_state', MemoryStore.player.currentMapId, nearbyInteractable.ref.id); sendRawChatMessage("*Kapıyı ittirdi*"); }
+            else if(nearbyInteractable.type === 'CHEST') {
+                if (nearbyInteractable.ref.isLocked) return showModal("Kilitli", "Sandık kilitli.");
+                showModal("Sandık Açıldı", "Sandık içeriği henüz eklenmedi.");
+            }
             else if(nearbyInteractable.type === 'TP') { 
                 const c = document.getElementById('tp-use-options'); c.innerHTML = ''; 
                 nearbyInteractable.ref.targets.forEach(tid => { const m = MemoryStore.maps.find(x => x.id === tid); if(m) c.innerHTML += `<button onclick="joinMap('${m.id}', false);document.getElementById('tp-use-modal').classList.add('hidden')" class="medieval-btn w-full py-2 rounded text-sm cinzel font-bold">${m.name} Diyarına Geç</button>`; }); document.getElementById('tp-use-modal').classList.remove('hidden'); 
@@ -1054,11 +1189,43 @@
             } 
         }
 
+        function lockInteraction() {
+            if(!nearbyInteractable) return;
+            if(nearbyInteractable.type === 'DOOR' || nearbyInteractable.type === 'CHEST') {
+                socket.emit('toggle_lock', MemoryStore.player.currentMapId, nearbyInteractable.type, nearbyInteractable.ref.id);
+                sendRawChatMessage(`*${nearbyInteractable.type === 'DOOR' ? 'Kapı' : 'Sandık'} kilidini kurcaladı*`);
+            }
+        }
+
+        function dist2(v, w) { return Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2); }
+        function distToSegmentSquared(p, v, w) {
+            let l2 = dist2(v, w);
+            if (l2 === 0) return dist2(p, v);
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+        }
+        function polygonIntersectCircle(points, cx, cy, r) {
+            if (isPointInPoly(cx, cy, points)) return true;
+            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                if (distToSegmentSquared({x:cx, y:cy}, points[j], points[i]) <= r*r) return true;
+            }
+            return false;
+        }
+
         function checkCollision(x, y, radius) { 
             if (!currentLoadedMapData) return false; 
             if (x - radius < 0 || x + radius > currentLoadedMapData.width || y - radius < 0 || y + radius > currentLoadedMapData.height) return true; 
-            if(currentLoadedMapData.walls) { for (let w of currentLoadedMapData.walls) { if (w.type === 'rect') { const testX = Math.max(w.x, Math.min(x, w.x + w.w)); const testY = Math.max(w.y, Math.min(y, w.y + w.h)); if (Math.hypot(x - testX, y - testY) <= radius) return true; } else if (w.type === 'circle') { if (Math.hypot(x - w.x, y - w.y) <= radius + w.radius) return true; } } }
-            if(currentLoadedMapData.doors) { for (let d of currentLoadedMapData.doors) { if (!d.isLocked && isPointInPoly(x, y, d.points)) return true; } } // isLocked = open for simplicity, or reverse. Let's say isLocked = false means closed.
+            if(currentLoadedMapData.walls) {
+                for (let w of currentLoadedMapData.walls) { 
+                    if (w.points && polygonIntersectCircle(w.points, x, y, radius)) return true;
+                }
+            }
+            if(currentLoadedMapData.doors) {
+                for (let d of currentLoadedMapData.doors) {
+                    if (!d.isOpen && d.points && polygonIntersectCircle(d.points, x, y, radius)) return true;
+                }
+            }
             return false; 
         }
 
@@ -1095,13 +1262,20 @@
                 if(!nearbyInteractable) { for (let n of (currentLoadedMapData.notes||[])) { if(Math.hypot(p.x - n.x, p.y - n.y) < p.size + 25) { nearbyInteractable = { type: 'NOTE', ref: n }; break; } } }
                 if(!nearbyInteractable) { for (let b of (currentLoadedMapData.bots||[])) { if (Math.hypot(p.x - b.x, p.y - b.y) < p.size + b.radius + 20) { nearbyInteractable = { type: 'BOT', ref: b }; break; } } }
                 if(!nearbyInteractable) { for (let tp of (currentLoadedMapData.tps||[])) { if (Math.hypot(p.x - tp.x, p.y - tp.y) < p.size + tp.radius + 15) { nearbyInteractable = { type: 'TP', ref: tp }; break; } } }
-                if(!nearbyInteractable) { for (let c of (currentLoadedMapData.chests||[])) { if(Math.hypot(p.x - c.points[0].x, p.y - c.points[0].y) < p.size + 40) { nearbyInteractable = { type: 'CHEST', ref: c }; break; } } }
-                if(!nearbyInteractable) { for (let d of (currentLoadedMapData.doors||[])) { if(Math.hypot(p.x - d.points[0].x, p.y - d.points[0].y) < p.size + 40) { nearbyInteractable = { type: 'DOOR', ref: d }; break; } } }
+                if(!nearbyInteractable) { for (let c of (currentLoadedMapData.chests||[])) { if(c.points && Math.hypot(p.x - c.points[0].x, p.y - c.points[0].y) < p.size + 40) { nearbyInteractable = { type: 'CHEST', ref: c }; break; } } }
+                if(!nearbyInteractable) { for (let d of (currentLoadedMapData.doors||[])) { if(d.points && Math.hypot(p.x - d.points[0].x, p.y - d.points[0].y) < p.size + 40) { nearbyInteractable = { type: 'DOOR', ref: d }; break; } } }
 
                 const prompt = document.getElementById('interaction-prompt');
                 if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                    if (nearbyTrade) { document.getElementById('interaction-btn-text').innerText = "[T] Ticaret Yap"; prompt.classList.remove('hidden'); }
-                    else if (nearbyInteractable) { document.getElementById('interaction-btn-text').innerText = "[E] Etkileşim"; prompt.classList.remove('hidden'); }
+                    if (nearbyTrade) { document.getElementById('interaction-btn-text').innerText = "[T] Ticaret Yap"; document.getElementById('interaction-extra-hint').classList.add('hidden'); prompt.classList.remove('hidden'); }
+                    else if (nearbyInteractable) {
+                        document.getElementById('interaction-btn-text').innerText = nearbyInteractable.type === 'DOOR' ? (nearbyInteractable.ref.isOpen ? "[E] Kapat" : "[E] Aç") : "[E] Etkileşim";
+                        if(nearbyInteractable.type === 'DOOR' || nearbyInteractable.type === 'CHEST') {
+                            document.getElementById('interaction-extra-hint').innerText = nearbyInteractable.ref.isLocked ? "[K] Kilitli (Aç)" : "[K] Kilitle";
+                            document.getElementById('interaction-extra-hint').classList.remove('hidden');
+                        } else { document.getElementById('interaction-extra-hint').classList.add('hidden'); }
+                        prompt.classList.remove('hidden');
+                    }
                     else { prompt.classList.add('hidden'); }
                 } else { prompt.classList.add('hidden'); }
                 
@@ -1174,11 +1348,11 @@
                 ctx.drawImage(currentLoadedMapImg, 0, 0);
 
                 if(currentLoadedMapData.notes) currentLoadedMapData.notes.forEach(n => { ctx.fillStyle = '#000'; ctx.font='30px serif'; ctx.textAlign='center'; ctx.fillText(n.type==='BOOK'?'📖':(n.type==='BOARD'?'📌':'📜'), n.x, n.y+10); });
-                if(currentLoadedMapData.doors) currentLoadedMapData.doors.forEach(d => { ctx.fillStyle = d.isLocked ? 'rgba(0,0,0,0)' : 'rgba(124,45,18,0.8)'; ctx.strokeStyle = '#7c2d12'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(d.points[0].x, d.points[0].y); for(let i=1; i<d.points.length; i++) ctx.lineTo(d.points[i].x, d.points[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); });
-                if(currentLoadedMapData.chests) currentLoadedMapData.chests.forEach(c => { ctx.fillStyle = c.isLocked ? 'rgba(0,0,0,0)' : 'rgba(133,77,14,0.8)'; ctx.strokeStyle = '#854d0e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(c.points[0].x, c.points[0].y); for(let i=1; i<c.points.length; i++) ctx.lineTo(c.points[i].x, c.points[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); });
+                if(currentLoadedMapData.doors) currentLoadedMapData.doors.forEach(d => { ctx.fillStyle = d.isOpen ? 'rgba(0,0,0,0)' : 'rgba(124,45,18,0.8)'; ctx.strokeStyle = '#7c2d12'; ctx.lineWidth = 3; if(d.points){ ctx.beginPath(); ctx.moveTo(d.points[0].x, d.points[0].y); for(let i=1; i<d.points.length; i++) ctx.lineTo(d.points[i].x, d.points[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); if(d.isLocked && !d.isOpen){ ctx.fillStyle='red'; ctx.font='20px serif'; ctx.fillText('🔒', d.points[0].x, d.points[0].y); } } });
+                if(currentLoadedMapData.chests) currentLoadedMapData.chests.forEach(c => { ctx.fillStyle = 'rgba(133,77,14,0.8)'; ctx.strokeStyle = '#854d0e'; ctx.lineWidth = 3; if(c.points){ ctx.beginPath(); ctx.moveTo(c.points[0].x, c.points[0].y); for(let i=1; i<c.points.length; i++) ctx.lineTo(c.points[i].x, c.points[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); if(c.isLocked){ ctx.fillStyle='red'; ctx.font='20px serif'; ctx.fillText('🔒', c.points[0].x, c.points[0].y); } } });
 
                 if(MemoryStore.role === 'GM') { 
-                    if(currentLoadedMapData.walls) { ctx.fillStyle = 'rgba(220, 38, 38, 0.3)'; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; currentLoadedMapData.walls.forEach(w => { ctx.beginPath(); if(w.type === 'rect') ctx.rect(w.x, w.y, w.w, w.h); else ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke(); }); }
+                    if(currentLoadedMapData.walls) { ctx.fillStyle = 'rgba(220, 38, 38, 0.3)'; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; currentLoadedMapData.walls.forEach(w => { if(w.points){ ctx.beginPath(); ctx.moveTo(w.points[0].x, w.points[0].y); for(let i=1; i<w.points.length; i++) ctx.lineTo(w.points[i].x, w.points[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); } }); }
                     if(currentLoadedMapData.musicZones) { currentLoadedMapData.musicZones.forEach(mz => { ctx.beginPath(); ctx.arc(mz.x, mz.y, mz.radius, 0, Math.PI*2); ctx.fillStyle = 'rgba(236, 72, 153, 0.2)'; ctx.fill(); ctx.strokeStyle = '#ec4899'; ctx.lineWidth=3; ctx.stroke(); ctx.fillStyle='white'; ctx.font='30px serif'; ctx.fillText('🎵', mz.x-15, mz.y+10); }); }
                 }
 
@@ -1207,13 +1381,12 @@
                 }
 
                 if (MemoryStore.role === 'GM' && editorDrawing) { 
-                    if (editorTool === 'WALL_RECT') { ctx.fillStyle = 'rgba(220,38,38,0.6)'; ctx.fillRect(Math.min(editStartX, editCurrentX), Math.min(editStartY, editCurrentY), Math.abs(editCurrentX - editStartX), Math.abs(editCurrentY - editStartY)); } 
-                    else if (editorTool === 'WALL_CIRCLE' || editorTool === 'TP' || editorTool === 'MUSIC') { ctx.beginPath(); ctx.arc(editStartX, editStartY, Math.max(5, Math.hypot(editCurrentX-editStartX, editCurrentY-editStartY)), 0, Math.PI*2); ctx.fillStyle = editorTool === 'TP' ? 'rgba(168,85,247,0.6)' : (editorTool==='MUSIC' ? 'rgba(236,72,153,0.6)' : 'rgba(220,38,38,0.6)'); ctx.fill(); }
+                    if (editorTool === 'TP' || editorTool === 'MUSIC') { ctx.beginPath(); ctx.arc(editStartX, editStartY, Math.max(5, Math.hypot(editCurrentX-editStartX, editCurrentY-editStartY)), 0, Math.PI*2); ctx.fillStyle = editorTool === 'TP' ? 'rgba(168,85,247,0.6)' : 'rgba(236,72,153,0.6)'; ctx.fill(); }
                     else if (editorTool === 'SELECT' && keys['shift']) { ctx.fillStyle = 'rgba(59, 130, 246, 0.3)'; ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2; ctx.fillRect(Math.min(editStartX, editCurrentX), Math.min(editStartY, editCurrentY), Math.abs(editCurrentX - editStartX), Math.abs(editCurrentY - editStartY)); ctx.strokeRect(Math.min(editStartX, editCurrentX), Math.min(editStartY, editCurrentY), Math.abs(editCurrentX - editStartX), Math.abs(editCurrentY - editStartY)); }
                 }
                 
-                if (MemoryStore.role === 'GM' && (editorTool === 'WALL_ROOF' || editorTool === 'DOOR' || editorTool === 'CHEST') && tempRoofPoints.length > 0) {
-                    ctx.strokeStyle = editorTool==='DOOR'?'#7c2d12':(editorTool==='CHEST'?'#854d0e':'#fcd34d'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tempRoofPoints[0].x, tempRoofPoints[0].y);
+                if (MemoryStore.role === 'GM' && (editorTool === 'WALL_ROOF' || editorTool === 'DOOR' || editorTool === 'CHEST' || editorTool === 'WALL') && tempRoofPoints.length > 0) {
+                    ctx.strokeStyle = editorTool==='DOOR'?'#7c2d12':(editorTool==='CHEST'?'#854d0e':(editorTool==='WALL'?'#ef4444':'#fcd34d')); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(tempRoofPoints[0].x, tempRoofPoints[0].y);
                     for(let i=1; i<tempRoofPoints.length; i++) ctx.lineTo(tempRoofPoints[i].x, tempRoofPoints[i].y); ctx.lineTo(editCurrentX, editCurrentY); ctx.stroke();
                     tempRoofPoints.forEach(pt => { ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI*2); ctx.fillStyle = 'red'; ctx.fill(); });
                 }
@@ -1243,12 +1416,11 @@
                             ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = overlayColor;
                             if(currentLoadedMapData && currentLoadedMapData.walls && hasLightSource) {
                                 currentLoadedMapData.walls.forEach(w => {
-                                    if(w.type === 'rect') {
+                                    if(w.points) {
                                         const pX = MemoryStore.player.visualX; const pY = MemoryStore.player.visualY;
-                                        const corners = [ {x: w.x, y: w.y}, {x: w.x + w.w, y: w.y}, {x: w.x + w.w, y: w.y + w.h}, {x: w.x, y: w.y + w.h} ];
                                         ctx.beginPath();
-                                        for (let i = 0; i < 4; i++) {
-                                            let p1 = corners[i]; let p2 = corners[(i + 1) % 4]; let nx = -(p2.y - p1.y); let ny = (p2.x - p1.x); let toLightX = pX - (p1.x + p2.x)/2; let toLightY = pY - (p1.y + p2.y)/2;
+                                        for (let i = 0; i < w.points.length; i++) {
+                                            let p1 = w.points[i]; let p2 = w.points[(i + 1) % w.points.length]; let nx = -(p2.y - p1.y); let ny = (p2.x - p1.x); let toLightX = pX - (p1.x + p2.x)/2; let toLightY = pY - (p1.y + p2.y)/2;
                                             if (nx * toLightX + ny * toLightY > 0) { let dx1 = p1.x - pX; let dy1 = p1.y - pY; let dx2 = p2.x - pX; let dy2 = p2.y - pY; ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p2.x + dx2*30, p2.y + dy2*30); ctx.lineTo(p1.x + dx1*30, p1.y + dy1*30); }
                                         } ctx.fill();
                                     }
