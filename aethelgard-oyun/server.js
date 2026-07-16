@@ -15,6 +15,7 @@ let serverState = {
     maps: [],
     mainMapId: null,
     weather: 'NONE',
+    fogState: false,
     environmentColor: 'rgba(0,0,0,0)',
     speedMultiplier: 1.0,
     worldTime: { hour: 12, minute: 0, day: 1, season: 'Güz', timeFlowSpeed: 1.0 },
@@ -25,6 +26,7 @@ let serverState = {
     auctions: [] 
 };
 
+// Render sunucusu açık kaldığı sürece veriyi korur
 if (fs.existsSync(DATA_FILE)) {
     try {
         const savedData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
@@ -101,6 +103,7 @@ io.on('connection', (socket) => {
         saveData(); io.emit('world_maps_updated', serverState.maps, serverState.mainMapId);
     });
 
+    // HARİTA OBJELERİNİ GÜNCELLEME VE SENKRONİZASYON
     socket.on('gm_update_map_objects', (mapId, objectsData) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
@@ -108,6 +111,13 @@ io.on('connection', (socket) => {
             saveData(); 
             socket.broadcast.emit('map_objects_synced', mapId, objectsData);
         }
+    });
+
+    // SİS, ATMOSFER VE HAVA DURUMU
+    socket.on('gm_toggle_fog', (state) => {
+        serverState.fogState = state;
+        saveData();
+        io.emit('fog_sync', state);
     });
 
     socket.on('gm_update_universe', (envColor, speedMulti, worldTime) => {
@@ -130,6 +140,7 @@ io.on('connection', (socket) => {
     socket.on('gm_stun_player', (targetId) => { io.to(targetId).emit('get_stunned'); });
     socket.on('gm_send_quest', (targetId, questText, goldReward) => { io.to(targetId).emit('receive_quest', questText, goldReward); });
 
+    // BANKA
     socket.on('bank_deposit', (username, amount) => {
         if(serverState.usersData[username]) {
             if(serverState.usersData[username].gold >= amount) {
@@ -151,21 +162,22 @@ io.on('connection', (socket) => {
 
     socket.on('item_action_broadcast', (mapId, actionType, x, y, data) => { socket.broadcast.emit('item_action_receive', mapId, actionType, x, y, data); });
 
-    // KAPI VE SANDIK (Aç/Kapat & Kilitle)
-    socket.on('toggle_lock', (mapId, type, objId) => {
+    // KAPI VE SANDIK ETKİLEŞİMLERİ
+    socket.on('interact_object', (mapId, type, objId, action) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
-            let list = type === 'DOOR' ? map.doors : map.chests;
-            let obj = list.find(o => o.id === objId);
-            if(obj) { obj.isLocked = !obj.isLocked; saveData(); io.emit('map_objects_synced', mapId, map); }
-        }
-    });
-
-    socket.on('toggle_door_state', (mapId, objId) => {
-        let map = serverState.maps.find(m => m.id === mapId);
-        if (map && map.doors) {
-            let obj = map.doors.find(o => o.id === objId);
-            if(obj && !obj.isLocked) { obj.isOpen = !obj.isOpen; saveData(); io.emit('map_objects_synced', mapId, map); }
+            let list = type === 'DOOR' ? map.doors : (type === 'CHEST' ? map.chests : null);
+            if(list) {
+                let obj = list.find(o => o.id === objId);
+                if(obj) {
+                    if (action === 'TOGGLE_LOCK') obj.isLocked = !obj.isLocked;
+                    else if (action === 'TOGGLE_OPEN') {
+                        if (!obj.isLocked) obj.isOpen = !obj.isOpen;
+                    }
+                    saveData();
+                    io.emit('map_objects_synced', mapId, map);
+                }
+            }
         }
     });
 
@@ -183,6 +195,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // TİCARET (TRADE) SİSTEMİ
     let trades = {};
     socket.on('trade_request', (targetId, reqName) => { io.to(targetId).emit('trade_request_received', socket.id, reqName); });
     socket.on('trade_accept', (requesterId) => {
