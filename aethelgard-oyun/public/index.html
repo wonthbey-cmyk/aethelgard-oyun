@@ -411,19 +411,12 @@
         function getMouseWorldPos(e) { return { x: (e.clientX + camera.x) / mapScaleFactor, y: (e.clientY + camera.y) / mapScaleFactor }; }
 
         // --- MULTIPLAYER SOCKET BAĞLANTISI ---
-        // HATA DÜZELTMESİ:
-        // 2. Eğer Socket kütüphanesi sunucuda değil de yerel (önizleme) modundaysak,
-        // çökmemesi için sahte (mock) bir soket yaratıyoruz.
         let socket;
         if (typeof io !== 'undefined') {
             socket = io(); // Sunucuya bağlan
         } else {
             console.warn("Socket.io kütüphanesi bulunamadı. Uygulama sunucusuz test/önizleme modunda çalışıyor.");
-            // Sahte soket objesi
-            socket = {
-                on: function(event, callback) { },
-                emit: function(event, data) { }
-            };
+            socket = { on: function(event, callback) { }, emit: function(event, data) { } };
         }
         
         let OtherPlayers = {}; // Diğer oyuncuların verisi
@@ -457,11 +450,19 @@
             OtherPlayers = activePlayersObj;
         });
 
-        // Sohbet Mesajı Geldiğinde
+        // --- CHAT SİSTEMİ GÜNCELLEMESİ ---
         socket.on('new_chat_message', (msgData) => {
+            // 1. Yazıyı alt kutuya ekle
             const container = document.getElementById('chat-messages');
             container.innerHTML += `<div><span class="font-bold text-[--medieval-gold]">[${msgData.name}]:</span> <span class="text-[--medieval-text] opacity-90">${msgData.text}</span></div>`;
             container.scrollTop = container.scrollHeight;
+            
+            // 2. Yazıyı diğer oyuncunun veya GM'in kafasının üstünde göster
+            if (msgData.socketId !== socket.id) { // Kendi mesajım değilse
+                if (OtherPlayers[msgData.socketId]) {
+                    OtherPlayers[msgData.socketId].activeBubble = { text: msgData.text, timer: 180 };
+                }
+            }
         });
 
         // İlahi Mesaj
@@ -473,7 +474,7 @@
             setTimeout(() => container.classList.remove('opacity-0'), 10);
         });
 
-        // GM Harita Çizimlerini (Duvar vs.) Senkronize Et
+        // GM Harita Çizimlerini Senkronize Et
         socket.on('map_objects_synced', (mapId, objectsData) => {
             let map = MemoryStore.maps.find(m => m.id === mapId);
             if (map) {
@@ -482,7 +483,6 @@
                 map.tps = objectsData.tps;
                 map.bots = objectsData.bots;
                 
-                // Eğer o an o haritadaysam, güncel veriyi ekranıma al
                 if (currentLoadedMapData && currentLoadedMapData.id === mapId) {
                     currentLoadedMapData.walls = objectsData.walls;
                     currentLoadedMapData.poisons = objectsData.poisons;
@@ -492,7 +492,6 @@
             }
         });
 
-        // --- GM ÇİZİM SENKRONİZASYON FONKSİYONU ---
         function syncMapObjectsToServer() {
             if (MemoryStore.role === 'GM' && currentLoadedMapData) {
                 socket.emit('gm_update_map_objects', currentLoadedMapData.id, {
@@ -668,15 +667,33 @@
         function saveBotCreation() { const name = document.getElementById('bot-name-input').value.trim() || "Gezgin"; const rad = parseInt(document.getElementById('bot-size-input').value) || 20; const greet = document.getElementById('bot-greeting-input').value.trim(); const isM = document.getElementById('bot-merchant-check').checked; const moveType = document.getElementById('bot-move-type').value; const hp = parseInt(document.getElementById('bot-hp-input').value) || 100; const finalShop = JSON.parse(JSON.stringify(tempBotData.shop)); if (tempBotData.isNew) { currentLoadedMapData.bots.push({ id: generateId(), name, image: tempBotData.image, x: tempBotData.ref.x, y: tempBotData.ref.y, spawnX: tempBotData.ref.x, spawnY: tempBotData.ref.y, radius: rad, greeting: greet, isMerchant: isM, moveType: moveType, path: [], pathIndex: 0, maxHp: hp, hp: hp, shop: finalShop }); } else { Object.assign(tempBotData.ref, { name, image: tempBotData.image, radius: rad, greeting: greet, isMerchant: isM, moveType: moveType, maxHp: hp, hp: Math.min(tempBotData.ref.hp || hp, hp), shop: finalShop }); } if(tempBotData.image) getCachedImage(tempBotData.image); document.getElementById('bot-modal').classList.add('hidden'); syncMapObjectsToServer(); }
 
         document.getElementById('chat-form').addEventListener('submit', sendChatMessage);
-        function sendChatMessage(e) { e.preventDefault(); sendRawChatMessage(document.getElementById('chat-input').value); }
+        
+        function sendChatMessage(e) { 
+            e.preventDefault(); 
+            sendRawChatMessage(document.getElementById('chat-input').value); 
+        }
+
         function sendRawChatMessage(text) {
             text = text.trim(); if (!text) return;
-            // Mesajı sunucuya emit et
-            socket.emit('chat_message', { name: MemoryStore.player.name || 'GM', text: text });
-            document.getElementById('chat-input').value = '';
+            
+            // Mesajı sunucuya emit et (kendi soket id'mizi de gönderiyoruz)
+            socket.emit('chat_message', { 
+                name: MemoryStore.player.name || 'GM', 
+                text: text,
+                socketId: socket.id 
+            });
             
             // Kendi kafamızda da görünsün
-            if(MemoryStore.role === 'PLAYER') MemoryStore.player.activeBubble = { text: text, timer: 180 };
+            if(MemoryStore.role === 'PLAYER') {
+                MemoryStore.player.activeBubble = { text: text, timer: 180 };
+            }
+            
+            // Alt kutuya kendimiz de ekliyoruz
+            const container = document.getElementById('chat-messages');
+            container.innerHTML += `<div><span class="font-bold text-[--medieval-gold]">[${MemoryStore.player.name || 'GM'}]:</span> <span class="text-[--medieval-text] opacity-90">${text}</span></div>`;
+            container.scrollTop = container.scrollHeight;
+
+            document.getElementById('chat-input').value = '';
         }
 
         function triggerInteraction() { if(!nearbyInteractable) return; if(nearbyInteractable.type === 'TP') { const c = document.getElementById('tp-use-options'); c.innerHTML = ''; nearbyInteractable.ref.targets.forEach(tid => { const m = MemoryStore.maps.find(x => x.id === tid); if(m) c.innerHTML += `<button onclick="joinMap('${m.id}', false);document.getElementById('tp-use-modal').classList.add('hidden')" class="medieval-btn w-full py-2 rounded text-sm cinzel font-bold">${m.name} Diyarına Geç</button>`; }); document.getElementById('tp-use-modal').classList.remove('hidden'); } else if (nearbyInteractable.type === 'BOT') { const b = nearbyInteractable.ref; if(b.greeting) b.activeBubble = { text: b.greeting, timer: 180 }; if(b.isMerchant) { document.getElementById('shop-title').innerText = b.name; const sc = document.getElementById('shop-items-container'); sc.innerHTML = ''; b.shop.forEach((it, idx) => { sc.innerHTML += `<div class="bg-black/60 p-3 rounded border border-[--medieval-border] flex flex-col items-center justify-between gap-2 text-center"><img src="${it.image || 'https://placehold.co/40x40/222/555?text=?'}" class="w-12 h-12 object-cover border border-[#d4af37]"><span class="text-xs font-bold text-[--medieval-text] w-full truncate">${it.name}</span><span class="text-[#fcd34d] font-bold text-sm">${it.price} 💰</span><button onclick="buyItem('${b.id}', ${idx})" class="medieval-btn px-4 py-1 rounded text-xs cinzel w-full">Satın Al</button></div>`; }); document.getElementById('shop-modal').classList.remove('hidden'); } } }
@@ -703,7 +720,8 @@
                 socket.emit('player_update', {
                     mapId: p.currentMapId,
                     visualX: p.visualX, visualY: p.visualY,
-                    size: p.size, name: p.name, image: p.image
+                    size: p.size, name: p.name, image: p.image,
+                    activeBubble: p.activeBubble // Baloncuğumuzu da gönderiyoruz
                 });
             }
             
@@ -746,9 +764,14 @@
                 // Diğer Oyuncuları (Multiplayer) Çiz
                 Object.keys(OtherPlayers).forEach(socketId => {
                     const op = OtherPlayers[socketId];
-                    // Eğer oyuncu benimle aynı haritadaysa ve o an ben değilsem
                     if (op.mapId === currentLoadedMapData.id && socketId !== socket.id) {
-                        drawCharacter(op.visualX, op.visualY, op.size, op.name, op.image, '#9ca3af'); // Gümüş/Gri çerçeve diğer oyuncular için
+                        drawCharacter(op.visualX, op.visualY, op.size, op.name, op.image, '#9ca3af');
+                        
+                        // Diğer oyuncunun kafasındaki yazıyı çiz
+                        if (op.activeBubble && op.activeBubble.timer > 0) {
+                            drawChatBubble(op.visualX, op.visualY, op.activeBubble.text, Math.min(1, op.activeBubble.timer / 30));
+                            op.activeBubble.timer--; 
+                        }
                     }
                 });
 
