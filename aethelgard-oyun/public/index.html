@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Lora:ital,wght@0,400;0,600;1,400&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
+    <!-- YOUTUBE IFRAME API EKLENDİ -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <style>
         :root { --medieval-dark: #1a1512; --medieval-panel: rgba(30, 24, 20, 0.95); --medieval-border: #8b5a2b; --medieval-text: #e6d5c3; --medieval-gold: #d4af37; --medieval-btn: #5c3a21; --medieval-btn-hover: #7a4e2d; }
         body { font-family: 'Lora', serif; overflow: hidden; background-color: var(--medieval-dark); background-image: radial-gradient(circle at center, #2a221d 0%, #110e0c 100%); color: var(--medieval-text); user-select: none; touch-action: none; }
@@ -25,25 +27,16 @@
         .parchment { background-color: #e8d5a1; background-image: url('https://www.transparenttextures.com/patterns/old-wall.png'); box-shadow: 0 20px 40px rgba(0,0,0,0.9), inset 0 0 40px rgba(100,60,20,0.5); color: #3e2723; transform: rotate(-2deg); border-radius: 2px 5px 3px 4px; }
         
         /* MOBİL SİSTEMİ (SLIDE-OUT SIDEBAR) */
-        #mobile-sidebar {
-            position: fixed; top: 0; right: -100%; width: 300px; height: 100%;
-            background: rgba(20, 15, 10, 0.95); border-left: 2px solid var(--medieval-border);
-            transition: right 0.3s ease; z-index: 60; padding: 1rem; overflow-y: auto;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.8);
-        }
+        #mobile-sidebar { position: fixed; top: 0; right: -100%; width: 300px; height: 100%; background: rgba(20, 15, 10, 0.95); border-left: 2px solid var(--medieval-border); transition: right 0.3s ease; z-index: 60; padding: 1rem; overflow-y: auto; box-shadow: -5px 0 25px rgba(0,0,0,0.8); }
         #mobile-sidebar.open { right: 0; }
         #mobile-menu-btn { display: none; position: absolute; top: 15px; right: 15px; z-index: 70; }
-
         #joystick-zone { display: none; position: absolute; bottom: 30px; left: 30px; width: 140px; height: 140px; background: rgba(30, 24, 20, 0.6); border: 2px solid var(--medieval-border); border-radius: 50%; pointer-events: auto; z-index: 40; backdrop-filter: blur(4px); }
         #joystick-knob { position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: radial-gradient(circle, var(--medieval-gold), var(--medieval-btn)); border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
 
         @media (pointer: coarse), (max-width: 768px) {
-            #mobile-menu-btn { display: block; }
-            #sidebar-container { display: none; } /* Orijinal yan paneli gizle */
-            #joystick-zone { display: block; }
+            #mobile-menu-btn { display: block; } #sidebar-container { display: none; } #joystick-zone { display: block; }
             #chat-container { width: 100% !important; bottom: 0; left: 0; padding: 10px !important; position: absolute; z-index: 30; }
-            .medieval-panel { padding: 1rem !important; }
-            #interaction-prompt { bottom: 180px; }
+            .medieval-panel { padding: 1rem !important; } #interaction-prompt { bottom: 180px; }
             #gm-live-toolbar { width: 95%; flex-wrap: wrap; justify-content: center; transform: translateX(-50%) scale(0.85); transform-origin: top center; bottom: 10px; top: auto; }
         }
     </style>
@@ -71,7 +64,10 @@
         <div id="screen-gm-menu" class="hidden medieval-panel p-8 flex flex-col gap-6 pointer-events-auto w-[36rem] max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-[--medieval-border] pb-4"><h2 class="text-3xl text-[--medieval-gold] cinzel">Kader Ustası Arşivi</h2><button onclick="logout()" class="text-red-400 font-bold cinzel text-sm uppercase">Çıkış</button></div>
             <div class="flex gap-2 mb-2">
+                <button onclick="showScreen('screen-player-char')" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(90deg);">🧙‍♂️ Karakter Belgesi</button>
                 <button onclick="document.getElementById('user-create-modal').classList.remove('hidden')" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(250deg);">👥 Yeni Oyuncu Yarat</button>
+            </div>
+            <div class="flex gap-2 mb-2">
                 <button onclick="openGMGoldPanel()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(45deg);">💰 Altın Dağıt</button>
                 <button onclick="openGMSettingsPanel()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm" style="filter: hue-rotate(200deg);">🛠️ Atmosfer / Evren</button>
             </div>
@@ -110,21 +106,17 @@
                 <div class="medieval-panel px-5 py-2 flex items-center gap-4"><span class="text-[--medieval-gold] text-sm cinzel">Bölge: </span><span id="current-map-name-display" class="font-bold tracking-wide">...</span></div>
             </div>
 
-            <!-- Masaüstü Sağ Panel (Sidebar Container) -->
-            <div id="sidebar-container" class="flex flex-col gap-3 items-end">
-                <!-- İçerik JavaScript ile buraya veya mobilde sidebar'a taşınacak -->
-            </div>
+            <!-- Masaüstü Sağ Panel -->
+            <div id="sidebar-container" class="flex flex-col gap-3 items-end"></div>
         </div>
 
-        <!-- Mobil Sidebar (Gizli) -->
+        <!-- Mobil Sidebar -->
         <div id="mobile-sidebar" class="pointer-events-auto flex flex-col gap-4">
             <button onclick="toggleMobileSidebar()" class="text-red-400 text-right font-bold cinzel text-xl">X Kapat</button>
-            <div id="sidebar-content-area" class="flex flex-col gap-3">
-                <!-- Paneller buraya taşınır -->
-            </div>
+            <div id="sidebar-content-area" class="flex flex-col gap-3"></div>
         </div>
 
-        <!-- Panel Şablonları (DOM'da gizli bekler, duruma göre eklenir) -->
+        <!-- PANEL Şablonları -->
         <div id="template-player-panel" class="hidden">
             <div class="medieval-panel px-4 py-3 flex flex-col gap-2 w-full pointer-events-auto mb-3">
                 <div class="flex justify-between items-center text-[#fcd34d] font-bold text-sm"><span>💰 <span id="player-gold-display">0</span></span></div>
@@ -136,7 +128,11 @@
         </div>
 
         <div id="template-gm-panel" class="hidden">
+            <div class="medieval-panel px-4 py-3 flex flex-col gap-2 w-full pointer-events-auto mb-3">
+                <div class="flex justify-between items-center text-[#fcd34d] font-bold text-sm"><span>💰 <span>Sınırsız (∞)</span></span></div>
+            </div>
             <button onclick="exitGame()" class="medieval-panel px-5 py-2 pointer-events-auto text-red-400 font-bold cinzel text-sm w-full mb-3 text-center">Arşive Dön</button>
+            <div class="flex gap-2 w-full mb-3"><button onclick="toggleWardrobeModal()" class="flex-1 medieval-panel px-2 py-2 pointer-events-auto text-[--medieval-gold] font-bold cinzel text-sm text-center">👔 Gardırop</button><button onclick="toggleInventoryModal()" class="flex-1 medieval-panel px-2 py-2 pointer-events-auto text-[#059669] font-bold cinzel text-sm text-center">🎒 Çanta</button></div>
             <div class="medieval-panel p-3 pointer-events-auto flex flex-col gap-2 w-full mb-3">
                 <span class="text-xs text-center text-[--medieval-gold] cinzel">İlahi Müdahale</span>
                 <button onclick="toggleWeather()" class="medieval-btn py-1 rounded text-xs cinzel" style="filter: hue-rotate(200deg);">Hava (Temiz/Yağmur/Kar)</button>
@@ -149,7 +145,6 @@
             </div>
         </div>
 
-
         <!-- GM TAM ARAÇ ÇUBUĞU -->
         <div id="gm-live-toolbar" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 medieval-panel p-2 px-4 flex gap-2 items-center pointer-events-auto z-20 shadow-2xl">
             <span class="text-xs text-[--medieval-gold] cinzel mr-2 hidden md:inline">Araçlar:</span>
@@ -160,7 +155,6 @@
             <button onclick="setEditorTool('WALL_ROOF')" id="tool-wall_roof" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 border-yellow-500 text-yellow-100" style="background:#4a3f35">🏠 ÇATI (Çizim)</button>
             <button onclick="setEditorTool('TP')" id="tool-tp" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70" style="filter: hue-rotate(250deg);">🌀 TP</button>
             <button onclick="setEditorTool('BOT')" id="tool-bot" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70" style="filter: hue-rotate(90deg);">🤖 Varlık</button>
-            <button onclick="setEditorTool('FIRE')" id="tool-fire" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 text-orange-200 bg-orange-900 border-orange-500">🔥 Ateş</button>
             <button onclick="setEditorTool('PATH')" id="tool-path" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 text-blue-200 bg-blue-900 border-blue-500">📍 Rota Çiz</button>
             <button onclick="setEditorTool('NOTE')" id="tool-note" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 text-yellow-200 bg-yellow-900 border-yellow-500">📜 Not Bırak</button>
             <button onclick="setEditorTool('MUSIC')" id="tool-music" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 text-pink-200 bg-pink-900 border-pink-500">🎵 Müzik</button>
@@ -168,7 +162,16 @@
             <button onclick="setEditorTool('DELETE')" id="tool-delete" class="medieval-btn px-2 py-1 rounded text-[10px] cinzel opacity-70 bg-red-900 border-red-500 text-red-200">🗑️ Silgi</button>
         </div>
 
-        <div id="interaction-prompt" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 pointer-events-auto hidden"><button onclick="triggerInteraction()" class="medieval-btn px-6 py-3 rounded-full font-bold cinzel text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse">[E] Etkileşim</button></div>
+        <!-- TİCARET İSTEĞİ PANELİ -->
+        <div id="trade-request-panel" class="hidden absolute top-20 left-1/2 transform -translate-x-1/2 medieval-panel p-4 z-50 pointer-events-auto border-[#d4af37]">
+            <div class="text-[--medieval-gold] font-bold text-center mb-3 text-sm" id="trade-req-text">X seninle ticaret yapmak istiyor.</div>
+            <div class="flex gap-2">
+                <button onclick="acceptTrade()" class="medieval-btn flex-1 py-1 rounded text-xs cinzel font-bold">Kabul Et</button>
+                <button onclick="declineTrade()" class="bg-red-900 text-red-200 flex-1 py-1 rounded border border-red-500 text-xs cinzel font-bold hover:bg-red-800">Reddet</button>
+            </div>
+        </div>
+
+        <div id="interaction-prompt" class="absolute bottom-32 left-1/2 transform -translate-x-1/2 pointer-events-auto hidden"><button onclick="triggerInteraction()" class="medieval-btn px-6 py-3 rounded-full font-bold cinzel text-lg shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse" id="interaction-btn-text">[E] Etkileşim</button></div>
 
         <!-- Sohbet -->
         <div id="chat-container" class="hidden p-4 w-[28rem] pointer-events-auto self-start">
@@ -189,7 +192,7 @@
     <canvas id="gameCanvas" class="absolute top-0 left-0 w-full h-full z-0 hidden"></canvas>
 
     <div id="modals-layer" class="pointer-events-none absolute inset-0 z-50">
-        <!-- TAKAS (TRADE) MODALI -->
+        <!-- TAKAS MODALI -->
         <div id="trade-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto">
             <div class="medieval-panel p-6 max-w-4xl w-full border-[#d4af37]">
                 <h3 class="text-3xl text-[--medieval-gold] cinzel mb-6 text-center border-b border-[--medieval-border] pb-2">Ticaret Anlaşması</h3>
@@ -217,11 +220,12 @@
             </div>
         </div>
         
-        <!-- YENİ NOT YARATMA (GM) MODALI -->
+        <!-- YENİ NOT YARATMA MODALI -->
         <div id="note-create-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto">
             <div class="medieval-panel p-6 max-w-lg w-full text-center border-yellow-600">
                 <h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center">Parşömen Yaz</h3>
                 <div class="flex flex-col items-center gap-4 mb-4">
+                    <input type="text" id="note-create-title" class="medieval-input w-full p-3 rounded font-bold text-center cinzel" placeholder="Parşömen Başlığı (Örn: Kralın Emri)">
                     <div class="w-full h-32 border-2 border-dashed border-[#8b5a2b] bg-black/50 rounded flex items-center justify-center relative overflow-hidden">
                         <img id="note-preview-img" class="absolute inset-0 w-full h-full object-contain hidden" />
                         <span id="note-img-hint" class="text-xs opacity-50 italic pointer-events-none">Resim Yükle (İsteğe Bağlı)</span>
@@ -240,12 +244,15 @@
         <div id="note-read-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
             <div class="parchment p-10 max-w-lg w-full relative max-h-[90vh] overflow-y-auto">
                 <div class="absolute top-2 left-1/2 transform -translate-x-1/2 w-12 h-4 bg-red-800/80 rounded shadow-md" style="rotate: 2deg;"></div>
-                <h3 class="text-3xl text-center text-[#5d4037] cinzel font-bold mb-6 border-b border-[#8d6e63] pb-2">Kayıp Parşömen</h3>
+                <h3 id="note-read-title" class="text-3xl text-center text-[#5d4037] cinzel font-bold mb-6 border-b border-[#8d6e63] pb-2">Kayıp Parşömen</h3>
                 <div id="note-read-img-container" class="mb-4 hidden text-center">
                     <img id="note-read-img" class="max-w-full h-auto max-h-48 mx-auto border border-[#8d6e63] rounded shadow-sm">
                 </div>
                 <p id="note-read-text" class="text-xl text-[#3e2723] handwriting leading-relaxed min-h-[100px] whitespace-pre-wrap text-center">Burası notun içeriği...</p>
-                <div class="mt-8 flex justify-center"><button onclick="document.getElementById('note-read-modal').classList.add('hidden')" class="medieval-btn px-6 py-2 rounded text-sm cinzel font-bold shadow-lg">Geri Koy</button></div>
+                <div class="mt-8 flex justify-between items-center gap-4">
+                    <button onclick="document.getElementById('note-read-modal').classList.add('hidden')" class="bg-transparent border-2 border-[#8d6e63] text-[#5d4037] px-6 py-2 rounded text-sm cinzel font-bold hover:bg-[#8d6e63]/20">Geri Koy</button>
+                    <button onclick="takeNoteToInventory()" class="medieval-btn px-6 py-2 rounded text-sm cinzel font-bold shadow-lg">🎒 Çantama Al</button>
+                </div>
             </div>
         </div>
 
@@ -290,7 +297,8 @@
         </div>
 
         <div id="custom-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-8 max-w-sm w-full text-center"><h3 id="modal-title" class="text-2xl text-[--medieval-gold] cinzel mb-3">Başlık</h3><p id="modal-text" class="text-[--medieval-text] mb-8 text-sm italic">Mesaj...</p><button onclick="closeModal()" class="medieval-btn px-8 py-2 rounded font-bold cinzel">Anladım</button></div></div>
-        <div id="music-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-6 max-w-sm w-full border-pink-500"><h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center">Müzik Alanı (Ozan)</h3><input type="text" id="music-url-input" class="medieval-input w-full p-2 rounded text-sm mb-4" placeholder="Müzik linki (mp3/ogg)"><div class="flex gap-3 w-full"><button onclick="document.getElementById('music-modal').classList.add('hidden')" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">Vazgeç</button><button onclick="confirmMusicCreation()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm">Mühürle</button></div></div></div>
+        
+        <div id="music-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-6 max-w-sm w-full border-pink-500"><h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center">Müzik Alanı (Ozan)</h3><input type="text" id="music-url-input" class="medieval-input w-full p-2 rounded text-sm mb-2" placeholder="YouTube Linki veya MP3 URL"><p class="text-[10px] text-gray-400 italic mb-4 text-center">Müzik alanının köşesinden tutup boyutunu sonradan ayarlayabilirsiniz.</p><div class="flex gap-3 w-full"><button onclick="document.getElementById('music-modal').classList.add('hidden')" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">Vazgeç</button><button onclick="confirmMusicCreation()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm">Mühürle</button></div></div></div>
         <div id="bot-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-6 max-w-xl w-full border-[#059669] max-h-[90vh] overflow-y-auto"><h3 class="text-2xl text-[--medieval-gold] cinzel mb-4 text-center" id="bot-modal-title">Gezgin / NPC Kaydı</h3><div class="flex gap-4 mb-4"><div class="flex flex-col items-center gap-2 w-1/3"><div class="relative w-24 h-24 rounded-full border-2 border-[#059669] bg-black/50 flex items-center justify-center overflow-hidden"><img id="bot-preview" class="w-full h-full object-cover hidden" /><span id="bot-placeholder" class="text-[--medieval-text] opacity-50 text-xs text-center px-2 italic">Resim</span></div><label class="cursor-pointer medieval-btn px-3 py-1 rounded text-xs cinzel w-full text-center" style="filter: hue-rotate(90deg);">Yükle<input type="file" accept="image/*" class="hidden" onchange="handleBotImageUpload(event)"></label></div><div class="w-2/3 flex flex-col gap-3"><div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">İsim</label><input type="text" id="bot-name-input" class="w-full medieval-input rounded px-3 py-1 text-sm"></div><div class="flex gap-2 items-center"><div class="flex-1"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Boyut Çapı (<span id="bot-size-display">20</span>)</label><input type="range" id="bot-size-input" min="10" max="60" value="20" class="w-full" oninput="document.getElementById('bot-size-display').innerText = this.value"></div><div class="w-16"><label class="block text-[10px] text-green-300 mb-1 cinzel font-bold text-center">Max HP</label><input type="number" id="bot-hp-input" value="100" class="w-full medieval-input rounded px-1 py-1 text-xs text-center"></div></div><div><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">Hareket Modu</label><select id="bot-move-type" class="w-full medieval-input rounded px-2 py-1 text-xs"><option value="fixed">Sabit (Durur)</option><option value="random">Rastgele Gezinir</option><option value="patrol">Özel Rota (Devriye)</option></select></div></div></div><div class="mb-4"><label class="block text-xs text-[--medieval-gold] mb-1 cinzel">İlk Karşılaşma Metni</label><input type="text" id="bot-greeting-input" class="w-full medieval-input rounded px-3 py-1 text-sm"></div><div class="border-t border-[--medieval-border] pt-4 mb-4"><label class="flex items-center gap-2 text-sm text-[--medieval-gold] font-bold cursor-pointer"><input type="checkbox" id="bot-merchant-check" onchange="toggleBotShopUI()" class="w-4 h-4 accent-[#d4af37]"> Bu NPC Bir Tüccar Mı?</label></div><div id="bot-shop-config" class="hidden bg-black/40 p-3 rounded border border-[--medieval-border] mb-4"><h4 class="text-xs text-[--medieval-gold] cinzel mb-2 border-b border-[--medieval-border] pb-1">Dükkan Eşyaları</h4><div id="bot-shop-items-list" class="flex flex-col gap-2 mb-3 max-h-32 overflow-y-auto"></div><div class="flex gap-2 items-end border-t border-[--medieval-border] pt-2"><div class="w-10 h-10 border border-[#d4af37] flex-shrink-0 flex items-center justify-center bg-black overflow-hidden relative"><img id="temp-shop-img-preview" class="w-full h-full object-cover hidden"><span id="temp-shop-img-placeholder" class="text-[8px] text-center opacity-50">Resim</span></div><label class="cursor-pointer medieval-btn px-2 py-2 rounded text-xs text-center w-16">Seç<input type="file" class="hidden" accept="image/*" onchange="handleTempShopItemImage(event)"></label><input type="text" id="shop-item-name" placeholder="Eşya Adı" class="medieval-input rounded px-2 py-1 text-xs flex-1 h-8"><input type="number" id="shop-item-price" placeholder="Altın" class="medieval-input rounded px-2 py-1 text-xs w-16 h-8 text-center"><button onclick="addBotShopItem()" class="medieval-btn px-3 py-1 rounded text-xs font-bold h-8 text-[#a7f3d0]">+ Ekle</button></div></div><div class="flex justify-between gap-3 border-t border-[--medieval-border] pt-4"><button onclick="cancelBotCreation()" class="text-red-400 font-bold cinzel text-sm">İptal</button><button onclick="saveBotCreation()" class="medieval-btn px-6 py-2 rounded font-bold cinzel" style="filter: hue-rotate(90deg);">Yerleştir</button></div></div></div>
         <div id="crop-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto"><div class="medieval-panel p-6 max-w-sm w-full text-center flex flex-col items-center"><h3 class="text-xl text-[--medieval-gold] cinzel mb-2">Portreyi Ayarla</h3><div class="relative w-48 h-48 border-2 border-[--medieval-gold] rounded-full overflow-hidden mb-4 bg-black cursor-move" id="crop-area"><canvas id="crop-canvas" width="192" height="192" class="absolute top-0 left-0 w-full h-full"></canvas></div><div class="flex gap-3 w-full"><button onclick="cancelCrop()" class="flex-1 text-red-400 font-bold cinzel py-2 text-sm">İptal</button><button onclick="saveCrop()" class="flex-1 medieval-btn py-2 rounded font-bold cinzel text-sm">Onayla & Yükle</button></div></div></div>
         <div id="tp-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-8 max-w-md w-full border-[#a855f7]"><h3 class="text-2xl text-[--medieval-gold] cinzel mb-2 text-center">Geçit Hedefleri</h3><div id="tp-target-checkboxes" class="max-h-48 overflow-y-auto mb-6 flex flex-col gap-2 bg-black/40 p-3 rounded"></div><div class="flex justify-between gap-3"><button onclick="cancelTPCreation()" class="text-red-400 font-bold cinzel text-sm">Vazgeç</button><button onclick="confirmTPCreation()" class="medieval-btn px-6 py-2 rounded font-bold cinzel" style="filter: hue-rotate(250deg);">Mühürle</button></div></div></div>
@@ -300,6 +308,9 @@
         <div id="shop-modal" class="hidden absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto"><div class="medieval-panel p-6 max-w-2xl w-full border-[#d4af37]"><div class="flex justify-between items-center mb-4"><h3 id="shop-title" class="text-2xl text-[--medieval-gold] cinzel">Tüccar</h3><div class="text-[#fcd34d] font-bold">Bütçen: <span id="shop-player-gold">0</span> 💰</div></div><div id="shop-items-container" class="grid grid-cols-3 gap-4 max-h-72 overflow-y-auto p-2 bg-black/40 rounded mb-4"></div><button onclick="document.getElementById('shop-modal').classList.add('hidden')" class="w-full text-red-400 font-bold cinzel text-sm">Ayrıl</button></div></div>
     </div>
 
+    <!-- Gizli YT Iframe Kapsayıcıları -->
+    <div id="yt-players-container" style="display: none;"></div>
+
     <script>
         const MemoryStore = {
             maps: [], mainMapId: null, weather: 'NONE', announcement: null,
@@ -308,7 +319,7 @@
                 username: "", name: "", image: null, wardrobe: [], inventory: [], gold: 0,
                 size: 18, x: null, y: null, visualX: null, visualY: null, targetX: null, targetY: null,
                 baseSpeed: 5, activeBubble: null, currentMapId: null, maxHp: 100, hp: 100,
-                isGhost: true // GM başlar başlamaz ghost
+                isGhost: true 
             },
             role: null, gameState: 'MENU'
         };
@@ -317,10 +328,13 @@
         
         let audioCtx, rainNoise, rainFilter, rainGain;
         const activeAudios = {}; 
+        const ytPlayers = {}; 
+        let ytApiReady = false;
+        function onYouTubeIframeAPIReady() { ytApiReady = true; }
 
         const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
         let animationFrameId; const camera = { x: 0, y: 0 }; let mapScaleFactor = 1; let gmZoom = 1.0; const keys = {};
-        let currentLoadedMapImg = new Image(); let currentLoadedMapData = null; let nearbyInteractable = null;
+        let currentLoadedMapImg = new Image(); let currentLoadedMapData = null; let nearbyInteractable = null; let nearbyTrade = null;
 
         let editorTool = null; let isPanning = false; let editorDrawing = false; 
         let editStartX = 0, editStartY = 0; let editCurrentX = 0, editCurrentY = 0;
@@ -334,10 +348,9 @@
         
         let currentTrade = null; 
         let tradeMyStagedItems = [];
+        let tradeRequesterId = null;
 
         let screenShake = 0; const weatherParticles = []; 
-        const fireParticles = []; // ATEŞ PARTİKÜLLERİ
-
         let lastPlayerEmitTime = 0; let lastEmitX = -9999; let lastEmitY = -9999; 
 
         let currentColorArr = [0, 0, 0, 0];
@@ -353,18 +366,30 @@
         if (typeof io !== 'undefined') { socket = io(); } else { socket = { on: function(){}, emit: function(){} }; }
         let OtherPlayers = {}; 
 
+        window.onload = () => {
+            const savedU = localStorage.getItem('aethelgard_user'); const savedP = localStorage.getItem('aethelgard_pass');
+            if (savedU && savedP) { socket.emit('login_request', savedU, savedP); document.getElementById('connection-status').innerText = "Ruh çağrılıyor..."; }
+        };
+
         socket.on('connect', () => { document.getElementById('connection-status').innerText = "Bağlantı Kuruldu!"; document.getElementById('connection-status').classList.replace('text-yellow-500', 'text-green-500'); document.getElementById('login-form').classList.remove('opacity-50', 'pointer-events-none'); });
 
-        socket.on('login_success', (role, username, serverState, activePlayersObj) => {
+        socket.on('login_success', (role, username, serverState, activePlayersObj, pData) => {
             MemoryStore.role = role; MemoryStore.player.username = username; MemoryStore.maps = serverState.maps; MemoryStore.mainMapId = serverState.mainMapId; MemoryStore.weather = serverState.weather || 'NONE'; 
             MemoryStore.environmentColor = serverState.environmentColor || "rgba(0,0,0,0)"; MemoryStore.speedMultiplier = serverState.speedMultiplier || 1.0; 
+            
+            // Kayıtlı oyuncu verilerini yükle
+            MemoryStore.player.gold = pData.gold || 0; MemoryStore.player.hp = pData.hp || 100; MemoryStore.player.maxHp = pData.maxHp || 100;
+            MemoryStore.player.inventory = pData.inventory || []; MemoryStore.player.wardrobe = pData.wardrobe || [];
+            MemoryStore.player.name = pData.name || username; MemoryStore.player.image = pData.image || null; MemoryStore.player.size = pData.size || 18;
+            if(MemoryStore.player.image) document.getElementById('char-preview').src = MemoryStore.player.image; document.getElementById('char-preview').classList.remove('hidden'); document.getElementById('char-placeholder').classList.add('hidden');
+
             OtherPlayers = activePlayersObj; buildWeatherParticles();
             
             if(MemoryStore.environmentColor !== "rgba(0,0,0,0)") { const match = MemoryStore.environmentColor.match(/rgba\(([^,]+),([^,]+),([^,]+),\s*([^)]+)\)/); if(match) currentColorArr = [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3]), parseFloat(match[4])]; }
-            if (role === 'PLAYER') { MemoryStore.player.isGhost = false; if(!MemoryStore.player.name) MemoryStore.player.name = username; document.getElementById('menu-player-name').innerText = MemoryStore.player.name; updateWardrobeUI(); showScreen('screen-player-menu'); } else { renderGMMapList(); showScreen('screen-gm-menu'); }
+            if (role === 'PLAYER') { MemoryStore.player.isGhost = false; document.getElementById('menu-player-name').innerText = MemoryStore.player.name; updateWardrobeUI(); showScreen('screen-player-menu'); } else { MemoryStore.player.isGhost = true; updateWardrobeUI(); renderGMMapList(); showScreen('screen-gm-menu'); }
         });
 
-        socket.on('login_error', (msg) => { const err = document.getElementById('login-error-msg'); err.innerText = msg; err.classList.remove('hidden'); });
+        socket.on('login_error', (msg) => { const err = document.getElementById('login-error-msg'); err.innerText = msg; err.classList.remove('hidden'); localStorage.removeItem('aethelgard_user'); localStorage.removeItem('aethelgard_pass'); });
         socket.on('user_create_result', (success, msg) => { document.getElementById('user-create-modal').classList.add('hidden'); showModal(success ? "Başarılı" : "Hata", msg); document.getElementById('new-user-name').value = ''; document.getElementById('new-user-pass').value = ''; });
         socket.on('world_maps_updated', (maps, mainId) => { MemoryStore.maps = maps; MemoryStore.mainMapId = mainId; if (MemoryStore.role === 'GM') renderGMMapList(); else if (MemoryStore.role === 'PLAYER') renderMapSelectionList(); });
         
@@ -377,10 +402,19 @@
         });
 
         socket.on('player_hidden', (id) => { if(OtherPlayers[id]) delete OtherPlayers[id]; if(MemoryStore.role==='GM') updateGMPlayerList(); });
-        socket.on('force_teleport', (mapId, x, y) => { MemoryStore.player.x = x; MemoryStore.player.y = y; joinMap(mapId, true); });
+        socket.on('force_teleport', (mapId, x, y) => { MemoryStore.player.x = x; MemoryStore.player.y = y; joinMap(mapId, true); camera.x = x * mapScaleFactor * gmZoom - window.innerWidth / 2; camera.y = y * mapScaleFactor * gmZoom - window.innerHeight / 2; });
+
+        function savePlayerStats() { socket.emit('player_update_stats', MemoryStore.player.username, { gold: MemoryStore.player.gold, hp: MemoryStore.player.hp, maxHp: MemoryStore.player.maxHp, inventory: MemoryStore.player.inventory, wardrobe: MemoryStore.player.wardrobe, name: MemoryStore.player.name, image: MemoryStore.player.image, size: MemoryStore.player.size }); }
 
         // Ticaret (Trade) Dinleyicileri
-        socket.on('trade_request_received', (requesterId, reqName) => { const accept = confirm(`${reqName} seninle ticaret yapmak istiyor. Kabul ediyor musun?`); if(accept) socket.emit('trade_accept', requesterId); else socket.emit('trade_decline', requesterId); });
+        socket.on('trade_request_received', (requesterId, reqName) => { 
+            tradeRequesterId = requesterId; 
+            document.getElementById('trade-req-text').innerText = `${reqName} seninle ticaret yapmak istiyor.`;
+            document.getElementById('trade-request-panel').classList.remove('hidden');
+        });
+        function acceptTrade() { socket.emit('trade_accept', tradeRequesterId); document.getElementById('trade-request-panel').classList.add('hidden'); }
+        function declineTrade() { socket.emit('trade_decline', tradeRequesterId, MemoryStore.player.name); document.getElementById('trade-request-panel').classList.add('hidden'); }
+        
         socket.on('trade_started', (tradeId, role) => { currentTrade = { id: tradeId, myRole: role, state: null }; tradeMyStagedItems = []; document.getElementById('trade-my-gold').value = 0; document.getElementById('trade-modal').classList.remove('hidden'); updateTradeOffer(); });
         socket.on('trade_sync', (state) => {
             if(!currentTrade) return; currentTrade.state = state;
@@ -396,9 +430,9 @@
             document.getElementById('trade-my-gold').disabled = myLock;
         });
 
-        socket.on('trade_success', (newInv, newGold) => { MemoryStore.player.inventory = newInv; MemoryStore.player.gold = newGold; document.getElementById('trade-modal').classList.add('hidden'); currentTrade = null; updatePlayerUI(); showModal("Takas Başarılı", "Eşyalar ve altınlar çantana eklendi."); });
+        socket.on('trade_success', (newInv, newGold) => { MemoryStore.player.inventory = newInv; MemoryStore.player.gold = newGold; savePlayerStats(); document.getElementById('trade-modal').classList.add('hidden'); currentTrade = null; updatePlayerUI(); showModal("Takas Başarılı", "Eşyalar ve altınlar çantana eklendi."); });
         socket.on('trade_cancelled', (msg) => { document.getElementById('trade-modal').classList.add('hidden'); currentTrade = null; showModal("Takas Bozuldu", msg); });
-        socket.on('receive_gold', (amount) => { MemoryStore.player.gold += amount; updatePlayerUI(); sendRawChatMessage(`* İlahi hazineden ${amount} altın kazandı. *`); });
+        socket.on('receive_gold', (amount) => { MemoryStore.player.gold += amount; savePlayerStats(); updatePlayerUI(); sendRawChatMessage(`* İlahi hazineden ${amount} altın kazandı. *`); });
 
         socket.on('show_god_message', (text) => { MemoryStore.announcement = { text: text, timer: 300 }; document.getElementById('god-message-text').innerText = text; const cont = document.getElementById('god-message-container'); cont.classList.remove('hidden'); setTimeout(() => cont.classList.remove('opacity-0'), 10); });
         socket.on('weather_sync', (weatherType) => { MemoryStore.weather = weatherType; buildWeatherParticles(); playAudioEnvironment(); });
@@ -408,16 +442,15 @@
         function syncMapObjectsToServer() {
             if (MemoryStore.role === 'GM' && currentLoadedMapData) {
                 socket.emit('gm_update_map_objects', currentLoadedMapData.id, {
-                    walls: currentLoadedMapData.walls || [], poisons: currentLoadedMapData.poisons || [], fires: currentLoadedMapData.fires || [],
-                    tps: currentLoadedMapData.tps || [], bots: currentLoadedMapData.bots || [], roofs: currentLoadedMapData.roofs || [],
+                    walls: currentLoadedMapData.walls || [], tps: currentLoadedMapData.tps || [], bots: currentLoadedMapData.bots || [], roofs: currentLoadedMapData.roofs || [],
                     notes: currentLoadedMapData.notes || [], musicZones: currentLoadedMapData.musicZones || []
                 });
             }
         }
 
-        function attemptLogin() { document.getElementById('login-error-msg').classList.add('hidden'); const u = document.getElementById('login-username').value.trim(); const p = document.getElementById('login-password').value.trim(); if(u && p) socket.emit('login_request', u, p); }
+        function attemptLogin() { document.getElementById('login-error-msg').classList.add('hidden'); const u = document.getElementById('login-username').value.trim(); const p = document.getElementById('login-password').value.trim(); if(u && p) { localStorage.setItem('aethelgard_user', u); localStorage.setItem('aethelgard_pass', p); socket.emit('login_request', u, p); } }
         function createPlayerAccount() { const u = document.getElementById('new-user-name').value.trim(); const p = document.getElementById('new-user-pass').value.trim(); if(u && p) socket.emit('create_user', u, p); }
-        function logout() { MemoryStore.role = null; exitGame(); showScreen('screen-login'); }
+        function logout() { localStorage.removeItem('aethelgard_user'); localStorage.removeItem('aethelgard_pass'); MemoryStore.role = null; exitGame(); showScreen('screen-login'); }
         function toggleChat() { const c = document.getElementById('chat-container'); const hint = document.getElementById('chat-hint'); if(c.classList.contains('hidden')) { c.classList.remove('hidden'); hint.classList.add('hidden'); document.getElementById('chat-input').focus(); } else { c.classList.add('hidden'); hint.classList.remove('hidden'); } }
 
         function toggleMobileSidebar() { const sb = document.getElementById('mobile-sidebar'); sb.classList.toggle('open'); }
@@ -431,7 +464,9 @@
         window.addEventListener('keydown', (e) => {
             if (MemoryStore.gameState === 'GAME') {
                 const chatInput = document.getElementById('chat-input');
-                if (e.key === 'Enter') { if (document.activeElement !== chatInput) toggleChat(); } else if (e.key === 'Escape') { if(tempRoofPoints.length > 0) tempRoofPoints = []; else { chatInput.blur(); toggleChat(); document.getElementById('whisper-suggestions').classList.add('hidden'); } } else if (e.key.toLowerCase() === 'e' && document.activeElement !== chatInput && MemoryStore.role === 'PLAYER') { triggerInteraction(); }
+                if (e.key === 'Enter') { if (document.activeElement !== chatInput) toggleChat(); } else if (e.key === 'Escape') { if(tempRoofPoints.length > 0) tempRoofPoints = []; else { chatInput.blur(); toggleChat(); document.getElementById('whisper-suggestions').classList.add('hidden'); } } 
+                else if (e.key.toLowerCase() === 't' && document.activeElement !== chatInput) { tradeInteraction(); }
+                else if (e.key.toLowerCase() === 'e' && document.activeElement !== chatInput && MemoryStore.role === 'PLAYER') { triggerInteraction(); }
             }
             if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT' && document.activeElement.tagName !== 'TEXTAREA') keys[e.key.toLowerCase()] = true;
         });
@@ -455,7 +490,7 @@
         function selectWardrobeImage(index) { 
             if(MemoryStore.player.wardrobe[index]) { 
                 MemoryStore.player.image = MemoryStore.player.wardrobe[index]; 
-                document.getElementById('char-preview').src = MemoryStore.player.image; document.getElementById('char-preview').classList.remove('hidden'); document.getElementById('char-placeholder').classList.add('hidden'); updateWardrobeUI();
+                document.getElementById('char-preview').src = MemoryStore.player.image; document.getElementById('char-preview').classList.remove('hidden'); document.getElementById('char-placeholder').classList.add('hidden'); updateWardrobeUI(); savePlayerStats();
                 if (MemoryStore.gameState === 'GAME' && !MemoryStore.player.isGhost) {
                     socket.emit('player_update', { mapId: MemoryStore.player.currentMapId, visualX: MemoryStore.player.visualX || MemoryStore.player.x, visualY: MemoryStore.player.visualY || MemoryStore.player.y, size: MemoryStore.player.size, name: MemoryStore.player.name, image: MemoryStore.player.image, isGhost: false });
                 }
@@ -463,7 +498,7 @@
         }
         function updateWardrobeUI() { const list = document.getElementById('wardrobe-list-ui'); const igList = document.getElementById('in-game-wardrobe-list'); list.innerHTML = ''; igList.innerHTML = ''; if(MemoryStore.player.wardrobe.length === 0) { list.innerHTML = '<span class="text-xs italic opacity-50">Henüz portre yüklenmedi.</span>'; return; } MemoryStore.player.wardrobe.forEach((src, idx) => { const isSelected = MemoryStore.player.image === src; const html = `<div onclick="selectWardrobeImage(${idx})" class="w-12 h-12 rounded-full border-2 cursor-pointer overflow-hidden ${isSelected ? 'border-[--medieval-gold] shadow-[0_0_10px_gold]' : 'border-gray-600'}"><img src="${src}" class="w-full h-full object-cover" /></div>`; list.innerHTML += html; igList.innerHTML += html; }); }
         function updateCharPreviewSize(val) { document.getElementById('size-val-display').innerText = val; const scale = parseInt(val) / 18; document.getElementById('char-preview-container').style.transform = `scale(${scale})`; }
-        function saveCharacter() { MemoryStore.player.name = document.getElementById('char-name-input').value.trim() || MemoryStore.player.username; MemoryStore.player.size = parseInt(document.getElementById('char-size-input').value) || 18; document.getElementById('menu-player-name').innerText = MemoryStore.player.name; showScreen('screen-player-menu'); }
+        function saveCharacter() { MemoryStore.player.name = document.getElementById('char-name-input').value.trim() || MemoryStore.player.username; MemoryStore.player.size = parseInt(document.getElementById('char-size-input').value) || 18; document.getElementById('menu-player-name').innerText = MemoryStore.player.name; savePlayerStats(); if(MemoryStore.role === 'PLAYER') showScreen('screen-player-menu'); else showScreen('screen-gm-menu'); }
         function toggleWardrobeModal() { document.getElementById('wardrobe-modal').classList.toggle('hidden'); }
         
         function toggleInventoryModal() { const modal = document.getElementById('inventory-modal'); modal.classList.toggle('hidden'); if(!modal.classList.contains('hidden')) renderInventory(); }
@@ -472,8 +507,8 @@
         // Ticaret (Trade) Mantığı
         function updateTradeOffer() { if(!currentTrade || currentTrade.state?.p1Locked || currentTrade.state?.p2Locked) return; const gold = parseInt(document.getElementById('trade-my-gold').value) || 0; const c = document.getElementById('trade-my-items'); c.innerHTML = ''; MemoryStore.player.inventory.forEach((it, idx) => { const isStaged = tradeMyStagedItems.includes(idx); c.innerHTML += `<div onclick="toggleStageItem(${idx})" class="cursor-pointer bg-black/60 p-1 border ${isStaged?'border-[#d4af37] bg-yellow-900/30':'border-gray-500'} rounded flex flex-col items-center relative"><img src="${it.image||''}" class="w-8 h-8 object-cover mb-1"><span class="text-[9px] w-full text-center truncate">${it.name}</span>${isStaged?'<span class="absolute top-0 right-0 bg-green-500 w-2 h-2 rounded-full"></span>':''}</div>`; }); const actualItemsToTrade = tradeMyStagedItems.map(i => MemoryStore.player.inventory[i]); socket.emit('trade_update_offer', currentTrade.id, currentTrade.myRole, actualItemsToTrade, gold); }
         function toggleStageItem(idx) { if(currentTrade && currentTrade.state) { const myL = currentTrade.myRole === 'p1' ? currentTrade.state.p1Locked : currentTrade.state.p2Locked; if(myL) return; } if(tradeMyStagedItems.includes(idx)) tradeMyStagedItems = tradeMyStagedItems.filter(i => i !== idx); else tradeMyStagedItems.push(idx); updateTradeOffer(); }
-        function lockTrade() { const myGold = parseInt(document.getElementById('trade-my-gold').value) || 0; if(myGold > MemoryStore.player.gold) return showModal("Hata", "Çantanda o kadar altın yok!"); socket.emit('trade_lock', currentTrade.id, currentTrade.myRole); }
-        function confirmTradeAction() { const myGold = parseInt(document.getElementById('trade-my-gold').value) || 0; const state = currentTrade.state; const theirGold = currentTrade.myRole === 'p1' ? state.p2Gold : state.p1Gold; const theirItems = currentTrade.myRole === 'p1' ? state.p2Items : state.p1Items; let newInv = MemoryStore.player.inventory.filter((it, idx) => !tradeMyStagedItems.includes(idx)); newInv = newInv.concat(theirItems); let newGold = MemoryStore.player.gold - myGold + theirGold; socket.emit('trade_confirm', currentTrade.id, currentTrade.myRole, newInv, newGold); }
+        function lockTrade() { const myGold = parseInt(document.getElementById('trade-my-gold').value) || 0; if(MemoryStore.role !== 'GM' && myGold > MemoryStore.player.gold) return showModal("Hata", "Çantanda o kadar altın yok!"); socket.emit('trade_lock', currentTrade.id, currentTrade.myRole); }
+        function confirmTradeAction() { const myGold = parseInt(document.getElementById('trade-my-gold').value) || 0; const state = currentTrade.state; const theirGold = currentTrade.myRole === 'p1' ? state.p2Gold : state.p1Gold; const theirItems = currentTrade.myRole === 'p1' ? state.p2Items : state.p1Items; let newInv = MemoryStore.player.inventory.filter((it, idx) => !tradeMyStagedItems.includes(idx)); newInv = newInv.concat(theirItems); let newGold = MemoryStore.role === 'GM' ? MemoryStore.player.gold : (MemoryStore.player.gold - myGold + theirGold); socket.emit('trade_confirm', currentTrade.id, currentTrade.myRole, newInv, newGold); }
         function cancelTrade() { socket.emit('trade_cancel', currentTrade.id); }
 
         function startGameAsPlayer() { if (MemoryStore.maps.length === 0) return showModal("Uyarı", "Diyar henüz yaratılmamış."); if (MemoryStore.player.currentMapId && typeof MemoryStore.player.x === 'number') { joinMap(MemoryStore.player.currentMapId, true); } else if (MemoryStore.mainMapId) { joinMap(MemoryStore.mainMapId, false); } else { renderMapSelectionList(); showScreen('screen-map-select'); } }
@@ -535,12 +570,12 @@
             list.innerHTML = '<span class="text-xs text-center text-[--medieval-gold] cinzel sticky top-0 bg-[--medieval-panel] pb-1 block">Kader Ustası Araçları</span>';
             let count = 0;
             for(let id in OtherPlayers) {
-                if(OtherPlayers[id].mapId === MemoryStore.player.currentMapId) {
+                if(OtherPlayers[id].mapId === MemoryStore.player.currentMapId && !OtherPlayers[id].isGhost) {
                     count++;
                     list.innerHTML += `<div class="flex justify-between items-center text-[10px] bg-black/40 p-1 border border-gray-600 rounded">
                         <span class="truncate w-16 text-[--medieval-text] font-bold">${OtherPlayers[id].name}</span>
                         <div class="flex gap-1"><button onclick="socket.emit('gm_teleport_action','goto','${id}',null,null,null)" class="bg-blue-900 text-blue-200 px-1 rounded">Git</button>
-                        <button onclick="socket.emit('gm_teleport_action','pull','${id}', '${MemoryStore.player.currentMapId}', ${camera.x/(mapScaleFactor*gmZoom) + 200}, ${camera.y/(mapScaleFactor*gmZoom) + 200})" class="bg-red-900 text-red-200 px-1 rounded">Çek</button></div>
+                        <button onclick="socket.emit('gm_teleport_action','pull','${id}', '${MemoryStore.player.currentMapId}', ${camera.x/(mapScaleFactor*gmZoom) + window.innerWidth/2/(mapScaleFactor*gmZoom)}, ${camera.y/(mapScaleFactor*gmZoom) + window.innerHeight/2/(mapScaleFactor*gmZoom)})" class="bg-red-900 text-red-200 px-1 rounded">Çek</button></div>
                     </div>`;
                 }
             }
@@ -567,11 +602,16 @@
             osc.connect(gn); gn.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.2);
         }
 
+        function extractVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp); return (match && match[2].length === 11) ? match[2] : null;
+        }
+
         // --- GM FONKSİYONLARI ---
         function renderGMMapList() { const c = document.getElementById('gm-map-list'); c.innerHTML = MemoryStore.maps.length === 0 ? '<span class="text-sm opacity-50 italic">Kayıtlı diyar yok.</span>' : ''; MemoryStore.maps.forEach(map => { const isMain = MemoryStore.mainMapId === map.id; c.innerHTML += `<div class="flex items-center justify-between bg-black/40 p-2 border border-[--medieval-border] rounded mb-2"><div class="flex items-center gap-3"><img src="${map.imgData}" class="w-8 h-8 rounded-full border border-[--medieval-gold] object-cover"><div class="font-bold text-[--medieval-gold] cinzel text-sm">${map.name} ${isMain ? '<span class="text-[#059669]">★</span>' : ''}</div></div><div class="flex gap-1">${!isMain ? `<button onclick="MemoryStore.mainMapId='${map.id}';renderGMMapList()" class="px-2 py-1 bg-[#059669]/20 text-[#059669] border border-[#059669] rounded text-xs cinzel font-bold">Ana Yap</button>` : ''}<button onclick="joinMap('${map.id}')" class="px-3 py-1 medieval-btn rounded text-xs cinzel font-bold">Düzenle</button></div></div>`; }); }
-        function gmUploadMap(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { const img = new Image(); img.src = e.target.result; img.onload = () => { const newMap = { id: generateId(), name: "Yeni Bölge", imgData: e.target.result, width: img.width, height: img.height, walls: [], fires: [], tps: [], bots: [], roofs: [], notes: [], musicZones: [] }; socket.emit('gm_upload_map', newMap); MemoryStore.maps.push(newMap); if (MemoryStore.maps.length === 1) MemoryStore.mainMapId = newMap.id; joinMap(newMap.id); } }; reader.readAsDataURL(file); } event.target.value = ''; }
+        function gmUploadMap(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { const img = new Image(); img.src = e.target.result; img.onload = () => { const newMap = { id: generateId(), name: "Yeni Bölge", imgData: e.target.result, width: img.width, height: img.height, walls: [], tps: [], bots: [], roofs: [], notes: [], musicZones: [] }; socket.emit('gm_upload_map', newMap); MemoryStore.maps.push(newMap); if (MemoryStore.maps.length === 1) MemoryStore.mainMapId = newMap.id; joinMap(newMap.id); } }; reader.readAsDataURL(file); } event.target.value = ''; }
         function setEditorTool(tool) { editorTool = tool; tempRoofPoints = []; updateToolUI(); }
-        function updateToolUI() { ['tool-select', 'tool-wall_rect', 'tool-wall_circle', 'tool-wall_roof', 'tool-tp', 'tool-bot', 'tool-fire', 'tool-path', 'tool-delete', 'tool-note', 'tool-music'].forEach(id => { const el = document.getElementById(id); if(el) { el.classList.remove('opacity-100', 'ring-2', 'ring-white'); el.classList.add('opacity-70'); } }); if (editorTool) { const el = document.getElementById(`tool-${editorTool.toLowerCase()}`); if(el) { el.classList.remove('opacity-70'); el.classList.add('opacity-100', 'ring-2', 'ring-white'); } } }
+        function updateToolUI() { ['tool-select', 'tool-wall_rect', 'tool-wall_circle', 'tool-wall_roof', 'tool-tp', 'tool-bot', 'tool-path', 'tool-delete', 'tool-note', 'tool-music'].forEach(id => { const el = document.getElementById(id); if(el) { el.classList.remove('opacity-100', 'ring-2', 'ring-white'); el.classList.add('opacity-70'); } }); if (editorTool) { const el = document.getElementById(`tool-${editorTool.toLowerCase()}`); if(el) { el.classList.remove('opacity-70'); el.classList.add('opacity-100', 'ring-2', 'ring-white'); } } }
         function openGodMessageModal() { document.getElementById('god-message-modal').classList.remove('hidden'); }
         function sendGodMessage(forcedText = null) { const text = forcedText || document.getElementById('god-message-input').value.trim(); if(text) { socket.emit('gm_god_message', text); } document.getElementById('god-message-input').value = ''; document.getElementById('god-message-modal').classList.add('hidden'); }
         function triggerEarthquake() { screenShake = 30; sendGodMessage("Diyar sarsılıyor! Yere tutunun!"); }
@@ -579,7 +619,7 @@
         function openGMSettingsPanel() { document.getElementById('gm-env-color').value = MemoryStore.environmentColor; document.getElementById('gm-player-speed-input').value = MemoryStore.speedMultiplier; document.getElementById('speed-display').innerText = MemoryStore.speedMultiplier; document.getElementById('gm-settings-modal').classList.remove('hidden'); }
         function updateUniverseSettings() { MemoryStore.environmentColor = document.getElementById('gm-env-color').value; MemoryStore.speedMultiplier = parseFloat(document.getElementById('gm-player-speed-input').value) || 1.0; socket.emit('gm_update_universe', MemoryStore.environmentColor, MemoryStore.speedMultiplier); }
         
-        function openGMGoldPanel() { const sel = document.getElementById('gm-gold-target'); sel.innerHTML = ''; for(let id in OtherPlayers) { sel.innerHTML += `<option value="${id}">${OtherPlayers[id].name}</option>`; } if(Object.keys(OtherPlayers).length === 0) sel.innerHTML = '<option value="">(Aktif oyuncu yok)</option>'; document.getElementById('gm-gold-modal').classList.remove('hidden'); }
+        function openGMGoldPanel() { const sel = document.getElementById('gm-gold-target'); sel.innerHTML = ''; for(let id in OtherPlayers) { if(!OtherPlayers[id].isGhost) sel.innerHTML += `<option value="${id}">${OtherPlayers[id].name}</option>`; } if(Object.keys(OtherPlayers).length === 0) sel.innerHTML = '<option value="">(Aktif oyuncu yok)</option>'; document.getElementById('gm-gold-modal').classList.remove('hidden'); }
         function giveGoldToPlayer() { const targetId = document.getElementById('gm-gold-target').value; const amount = parseInt(document.getElementById('gm-gold-amount').value); if(targetId && amount) { socket.emit('gm_give_gold', targetId, amount); showModal("Başarılı", "Altın gönderildi."); } document.getElementById('gm-gold-amount').value = ''; document.getElementById('gm-gold-modal').classList.add('hidden'); }
 
         function buildWeatherParticles() { weatherParticles.length = 0; if(MemoryStore.weather !== 'NONE') { const isRain = MemoryStore.weather === 'RAIN'; for(let i=0; i<300; i++) { weatherParticles.push({ x: Math.random() * window.innerWidth * 1.5, y: Math.random() * window.innerHeight, speedY: isRain ? 15 + Math.random() * 10 : 3 + Math.random() * 2, speedX: isRain ? -2 - Math.random() * 2 : Math.random() * 2 - 1, length: isRain ? 10 + Math.random() * 10 : 0, size: isRain ? 1 : 1.5 + Math.random() * 2 }); } } }
@@ -605,29 +645,26 @@
 
                 if (editorTool === 'NOTE') {
                     tempNoteCoords = { x: pos.x, y: pos.y }; tempNoteImgBase64 = null;
-                    document.getElementById('note-preview-img').classList.add('hidden'); document.getElementById('note-img-hint').classList.remove('hidden'); document.getElementById('note-create-text').value = '';
+                    document.getElementById('note-preview-img').classList.add('hidden'); document.getElementById('note-img-hint').classList.remove('hidden'); document.getElementById('note-create-text').value = ''; document.getElementById('note-create-title').value = '';
                     document.getElementById('note-create-modal').classList.remove('hidden'); return;
-                }
-                
-                if (editorTool === 'FIRE') {
-                    if(!currentLoadedMapData.fires) currentLoadedMapData.fires=[];
-                    currentLoadedMapData.fires.push({ x: pos.x, y: pos.y, radius: 40, startTime: Date.now(), duration: 60000 }); syncMapObjectsToServer(); return;
                 }
 
                 if (editorTool === 'DELETE') {
                     let dIdx;
                     dIdx = currentLoadedMapData.roofs?.findIndex(r => isPointInPoly(pos.x, pos.y, r.points)); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.roofs.splice(dIdx, 1); syncMapObjectsToServer(); return; }
-                    dIdx = currentLoadedMapData.fires?.findIndex(f => Math.hypot(f.x - pos.x, f.y - pos.y) <= f.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.fires.splice(dIdx, 1); syncMapObjectsToServer(); return; }
-                    dIdx = currentLoadedMapData.notes?.findIndex(n => Math.hypot(n.x - pos.x, n.y - pos.y) <= 15); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.notes.splice(dIdx, 1); syncMapObjectsToServer(); return; }
+                    dIdx = currentLoadedMapData.notes?.findIndex(n => Math.hypot(n.x - pos.x, n.y - pos.y) <= 25); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.notes.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                     dIdx = currentLoadedMapData.musicZones?.findIndex(m => Math.hypot(m.x - pos.x, m.y - pos.y) <= m.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.musicZones.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                     dIdx = currentLoadedMapData.bots?.findIndex(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.bots.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                     dIdx = currentLoadedMapData.tps?.findIndex(t => Math.hypot(t.x - pos.x, t.y - pos.y) <= t.radius); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.tps.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                     dIdx = currentLoadedMapData.walls?.findIndex(w => { if (w.type === 'rect') return pos.x >= w.x && pos.x <= w.x + w.w && pos.y >= w.y && pos.y <= w.y + w.h; if (w.type === 'circle') return Math.hypot(w.x - pos.x, w.y - pos.y) <= w.radius; return false; }); if (dIdx !== -1 && dIdx !== undefined) { currentLoadedMapData.walls.splice(dIdx, 1); syncMapObjectsToServer(); return; }
                 } else if (editorTool === 'SELECT') {
                     draggedObj = null; draggedObjType = null;
-                    let hit = currentLoadedMapData.bots?.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (hit) { draggedObj = hit; draggedObjType = 'bot'; return; }
-                    hit = currentLoadedMapData.tps?.find(t => Math.hypot(t.x - pos.x, t.y - pos.y) <= t.radius); if (hit) { draggedObj = hit; draggedObjType = 'tp'; dragOffX = pos.x - hit.x; dragOffY = pos.y - hit.y; return; }
-                    hit = currentLoadedMapData.walls?.find(w => { if (w.type === 'rect') return pos.x >= w.x && pos.x <= w.x + w.w && pos.y >= w.y && pos.y <= w.y + w.h; if (w.type === 'circle') return Math.hypot(w.x - pos.x, w.y - pos.y) <= w.radius; return false; }); if (hit) { draggedObj = hit; draggedObjType = 'wall'; dragOffX = pos.x - hit.x; dragOffY = pos.y - hit.y; return; }
+                    let hitBot = currentLoadedMapData.bots?.find(b => Math.hypot(b.x - pos.x, b.y - pos.y) <= b.radius); if (hitBot) { draggedObj = hitBot; draggedObjType = 'bot'; return; }
+                    let hitTp = currentLoadedMapData.tps?.find(t => Math.hypot(t.x - pos.x, t.y - pos.y) <= t.radius); if (hitTp) { draggedObj = hitTp; draggedObjType = 'tp'; dragOffX = pos.x - hitTp.x; dragOffY = pos.y - hitTp.y; return; }
+                    let hitWall = currentLoadedMapData.walls?.find(w => { if (w.type === 'rect') return pos.x >= w.x && pos.x <= w.x + w.w && pos.y >= w.y && pos.y <= w.y + w.h; if (w.type === 'circle') return Math.hypot(w.x - pos.x, w.y - pos.y) <= w.radius; return false; }); if (hitWall) { draggedObj = hitWall; draggedObjType = 'wall'; dragOffX = pos.x - hitWall.x; dragOffY = pos.y - hitWall.y; return; }
+                    // Müzik Alanı Resize/Move
+                    let hitMusicEdge = currentLoadedMapData.musicZones?.find(mz => Math.abs(Math.hypot(mz.x - pos.x, mz.y - pos.y) - mz.radius) < 15); if(hitMusicEdge) { draggedObj = hitMusicEdge; draggedObjType = 'music_resize'; return; }
+                    let hitMusicCenter = currentLoadedMapData.musicZones?.find(mz => Math.hypot(mz.x - pos.x, mz.y - pos.y) < 25); if(hitMusicCenter) { draggedObj = hitMusicCenter; draggedObjType = 'music_move'; dragOffX = pos.x - hitMusicCenter.x; dragOffY = pos.y - hitMusicCenter.y; return; }
                 } else { editorDrawing = true; }
             }
         });
@@ -637,7 +674,12 @@
                 if (isPanning) { camera.x -= e.movementX / gmZoom; camera.y -= e.movementY / gmZoom; }
                 if (MemoryStore.role === 'GM' && currentLoadedMapData) {
                     const pos = getMouseWorldPos(e); editCurrentX = pos.x; editCurrentY = pos.y;
-                    if (editorTool === 'SELECT' && draggedObj) { if (draggedObjType === 'bot') { draggedObj.x = pos.x; draggedObj.y = pos.y; if(draggedObj.spawnX) { draggedObj.spawnX = pos.x; draggedObj.spawnY = pos.y; } } else if (draggedObjType === 'wall' || draggedObjType === 'tp') { draggedObj.x = pos.x - dragOffX; draggedObj.y = pos.y - dragOffY; } }
+                    if (editorTool === 'SELECT' && draggedObj) { 
+                        if (draggedObjType === 'bot') { draggedObj.x = pos.x; draggedObj.y = pos.y; if(draggedObj.spawnX) { draggedObj.spawnX = pos.x; draggedObj.spawnY = pos.y; } } 
+                        else if (draggedObjType === 'wall' || draggedObjType === 'tp') { draggedObj.x = pos.x - dragOffX; draggedObj.y = pos.y - dragOffY; }
+                        else if (draggedObjType === 'music_resize') { draggedObj.radius = Math.max(20, Math.hypot(draggedObj.x - pos.x, draggedObj.y - pos.y)); }
+                        else if (draggedObjType === 'music_move') { draggedObj.x = pos.x - dragOffX; draggedObj.y = pos.y - dragOffY; }
+                    }
                 }
             }
         });
@@ -661,11 +703,22 @@
             }
         });
 
-        // Yeni Not Yaratma (Resimli Panel)
+        // Yeni Not Yaratma 
         function handleNoteImgUpload(e) { const file = e.target.files[0]; if(file) { const reader = new FileReader(); reader.onload = function(evt) { tempNoteImgBase64 = evt.target.result; document.getElementById('note-preview-img').src = evt.target.result; document.getElementById('note-preview-img').classList.remove('hidden'); document.getElementById('note-img-hint').classList.add('hidden'); }; reader.readAsDataURL(file); } e.target.value = ''; }
-        function saveNoteCreation() { const txt = document.getElementById('note-create-text').value.trim(); if(txt || tempNoteImgBase64) { if(!currentLoadedMapData.notes) currentLoadedMapData.notes=[]; currentLoadedMapData.notes.push({ x: tempNoteCoords.x, y: tempNoteCoords.y, text: txt, image: tempNoteImgBase64 }); syncMapObjectsToServer(); } document.getElementById('note-create-modal').classList.add('hidden'); }
+        function saveNoteCreation() { const txt = document.getElementById('note-create-text').value.trim(); const title = document.getElementById('note-create-title').value.trim() || "Kayıp Parşömen"; if(txt || tempNoteImgBase64) { if(!currentLoadedMapData.notes) currentLoadedMapData.notes=[]; currentLoadedMapData.notes.push({ id: generateId(), x: tempNoteCoords.x, y: tempNoteCoords.y, title: title, text: txt, image: tempNoteImgBase64 }); syncMapObjectsToServer(); } document.getElementById('note-create-modal').classList.add('hidden'); }
 
-        function confirmMusicCreation() { const u = document.getElementById('music-url-input').value.trim(); if(u && tempMusicRect) { if(!currentLoadedMapData.musicZones) currentLoadedMapData.musicZones=[]; currentLoadedMapData.musicZones.push({ ...tempMusicRect, url: u }); syncMapObjectsToServer(); } document.getElementById('music-modal').classList.add('hidden'); tempMusicRect = null; }
+        let currentReadingNote = null;
+        function takeNoteToInventory() {
+            if(!currentReadingNote) return;
+            MemoryStore.player.inventory.push({ name: `📜 ${currentReadingNote.title}`, type: 'note', text: currentReadingNote.text, image: currentReadingNote.image });
+            savePlayerStats();
+            socket.emit('remove_note_from_map', MemoryStore.player.currentMapId, currentReadingNote.id);
+            document.getElementById('note-read-modal').classList.add('hidden');
+            showModal("Eşya Alındı", "Parşömen çantana yerleştirildi.");
+            currentReadingNote = null;
+        }
+
+        function confirmMusicCreation() { const u = document.getElementById('music-url-input').value.trim(); if(u && tempMusicRect) { if(!currentLoadedMapData.musicZones) currentLoadedMapData.musicZones=[]; currentLoadedMapData.musicZones.push({ id: generateId(), ...tempMusicRect, url: u }); syncMapObjectsToServer(); } document.getElementById('music-modal').classList.add('hidden'); tempMusicRect = null; }
 
         function isPointInPoly(x, y, poly) {
             if(!poly) return false; let inside = false;
@@ -685,15 +738,8 @@
         chatInput.addEventListener('input', (e) => {
             const val = e.target.value; const sugg = document.getElementById('whisper-suggestions');
             if (val.startsWith('/w ')) {
-                const typedName = val.substring(3).toLowerCase();
-                sugg.innerHTML = ''; let count = 0; const p = MemoryStore.player;
-                for(let id in OtherPlayers) {
-                    const op = OtherPlayers[id]; if (op.mapId !== p.currentMapId) continue;
-                    if (Math.hypot(p.visualX - op.visualX, p.visualY - op.visualY) > 200) continue; 
-                    if (op.name.toLowerCase().includes(typedName)) {
-                        sugg.innerHTML += `<div class="cursor-pointer hover:bg-[--medieval-btn] px-2 py-1 text-sm font-bold text-[--medieval-gold]" onclick="fillWhisper('${op.name}')">${op.name}</div>`; count++;
-                    }
-                }
+                const typedName = val.substring(3).toLowerCase(); sugg.innerHTML = ''; let count = 0; const p = MemoryStore.player;
+                for(let id in OtherPlayers) { const op = OtherPlayers[id]; if (op.mapId !== p.currentMapId) continue; if (Math.hypot(p.visualX - op.visualX, p.visualY - op.visualY) > 200) continue; if (op.name.toLowerCase().includes(typedName)) { sugg.innerHTML += `<div class="cursor-pointer hover:bg-[--medieval-btn] px-2 py-1 text-sm font-bold text-[--medieval-gold]" onclick="fillWhisper('${op.name}')">${op.name}</div>`; count++; } }
                 if(count > 0) sugg.classList.remove('hidden'); else sugg.classList.add('hidden');
             } else { sugg.classList.add('hidden'); }
         });
@@ -703,36 +749,21 @@
         function sendChatMessage(e) { e.preventDefault(); sendRawChatMessage(chatInput.value); }
         function sendRawChatMessage(text) { 
             text = text.trim(); if (!text) return; 
-            
             let type = 'SAY'; let target = null; let cleanText = text;
-            if (text.startsWith('/s ')) { type = 'SCREAM'; cleanText = text.substring(3); }
-            else if (text.startsWith('/l ')) { type = 'LOW'; cleanText = text.substring(3); }
-            else if (text.startsWith('/me ')) { type = 'EMOTE'; cleanText = text.substring(4); }
-            else if (text.startsWith('/w ')) {
-                type = 'WHISPER'; const parts = text.split(' ');
-                if (parts.length > 2) { target = parts[1]; cleanText = parts.slice(2).join(' '); } else { showModal("Hata", "/w isim mesaj  şeklinde yazmalısın."); return; }
-            }
+            if (text.startsWith('/s ')) { type = 'SCREAM'; cleanText = text.substring(3); } else if (text.startsWith('/l ')) { type = 'LOW'; cleanText = text.substring(3); } else if (text.startsWith('/me ')) { type = 'EMOTE'; cleanText = text.substring(4); } else if (text.startsWith('/w ')) { type = 'WHISPER'; const parts = text.split(' '); if (parts.length > 2) { target = parts[1]; cleanText = parts.slice(2).join(' '); } else { showModal("Hata", "/w isim mesaj  şeklinde yazmalısın."); return; } }
 
             const msgObj = { name: MemoryStore.player.name || 'GM', text: cleanText, type: type, target: target, x: MemoryStore.player.visualX, y: MemoryStore.player.visualY, mapId: MemoryStore.player.currentMapId };
-            socket.emit('chat_message', msgObj);
-            msgObj.isLocal = true; displayChatMessage(msgObj);
+            socket.emit('chat_message', msgObj); msgObj.isLocal = true; displayChatMessage(msgObj);
             chatInput.value = ''; document.getElementById('whisper-suggestions').classList.add('hidden'); chatInput.blur(); toggleChat(); 
         }
 
         socket.on('new_chat_message', (msg) => { if (msg.socketId === socket.id) return; displayChatMessage(msg); });
 
         function displayChatMessage(msg) {
-            const p = MemoryStore.player;
-            if (MemoryStore.role !== 'GM' && msg.mapId !== p.currentMapId) return;
-
+            const p = MemoryStore.player; if (MemoryStore.role !== 'GM' && msg.mapId !== p.currentMapId) return;
             let distance = Math.hypot(p.visualX - msg.x, p.visualY - msg.y); if (msg.isLocal) distance = 0; 
             if (MemoryStore.role !== 'GM') {
-                if (msg.type === 'SCREAM' && distance > 1000) return;
-                if (msg.type === 'SAY' && distance > 400) return;
-                if (msg.type === 'EMOTE' && distance > 400) return;
-                if (msg.type === 'LOW' && distance > 100) return;
-                if (msg.type === 'WHISPER' && distance > 200) return;
-                if (msg.type === 'WHISPER' && !msg.isLocal) { if (msg.target !== p.name && msg.name !== p.name) return; playWhisperSound(); }
+                if (msg.type === 'SCREAM' && distance > 1000) return; if (msg.type === 'SAY' && distance > 400) return; if (msg.type === 'EMOTE' && distance > 400) return; if (msg.type === 'LOW' && distance > 100) return; if (msg.type === 'WHISPER' && distance > 200) return; if (msg.type === 'WHISPER' && !msg.isLocal) { if (msg.target !== p.name && msg.name !== p.name) return; playWhisperSound(); }
             }
 
             let html = ''; let bubbleText = msg.text;
@@ -746,13 +777,17 @@
             if (msg.isLocal) { p.activeBubble = { text: bubbleText, timer: 180, type: msg.type }; } else { if (OtherPlayers[msg.socketId]) { OtherPlayers[msg.socketId].activeBubble = { text: bubbleText, timer: 180, type: msg.type }; } }
         }
 
+        function tradeInteraction() {
+            if(!nearbyTrade) return;
+            socket.emit('trade_request', nearbyTrade.ref, MemoryStore.player.name);
+            showModal("Takas Teklifi İletildi", "Karşı tarafın onaylaması bekleniyor...");
+        }
+
         function triggerInteraction() { 
             if(!nearbyInteractable) return; 
-            if(nearbyInteractable.type === 'TRADE') {
-                socket.emit('trade_request', nearbyInteractable.ref, MemoryStore.player.name);
-                showModal("Takas Teklifi İletildi", "Karşı tarafın onaylaması bekleniyor...");
-            }
-            else if(nearbyInteractable.type === 'NOTE') {
+            if(nearbyInteractable.type === 'NOTE') {
+                currentReadingNote = nearbyInteractable.ref;
+                document.getElementById('note-read-title').innerText = nearbyInteractable.ref.title || "Kayıp Parşömen";
                 document.getElementById('note-read-text').innerText = nearbyInteractable.ref.text || "";
                 if(nearbyInteractable.ref.image) { document.getElementById('note-read-img').src = nearbyInteractable.ref.image; document.getElementById('note-read-img-container').classList.remove('hidden'); } else { document.getElementById('note-read-img-container').classList.add('hidden'); }
                 document.getElementById('note-read-modal').classList.remove('hidden');
@@ -806,22 +841,52 @@
 
                 const scaleX = canvas.width / currentLoadedMapData.width; const scaleY = canvas.height / currentLoadedMapData.height; mapScaleFactor = Math.max(1, scaleX, scaleY); const targetCamX = p.visualX * mapScaleFactor - canvas.width / 2; const targetCamY = p.visualY * mapScaleFactor - canvas.height / 2; camera.x += (targetCamX - camera.x) * 0.1; camera.y += (targetCamY - camera.y) * 0.1; const maxCamX = Math.max(0, currentLoadedMapData.width * mapScaleFactor - canvas.width); const maxCamY = Math.max(0, currentLoadedMapData.height * mapScaleFactor - canvas.height); camera.x = Math.max(0, Math.min(camera.x, maxCamX)); camera.y = Math.max(0, Math.min(camera.y, maxCamY));
                 
-                nearbyInteractable = null;
-                for (let id in OtherPlayers) { if(!OtherPlayers[id].isGhost && OtherPlayers[id].mapId === p.currentMapId && Math.hypot(p.x - OtherPlayers[id].visualX, p.y - OtherPlayers[id].visualY) < 50) { nearbyInteractable = { type: 'TRADE', ref: id }; break; } }
+                nearbyInteractable = null; nearbyTrade = null;
+                for (let id in OtherPlayers) { if(!OtherPlayers[id].isGhost && OtherPlayers[id].mapId === p.currentMapId && Math.hypot(p.x - OtherPlayers[id].visualX, p.y - OtherPlayers[id].visualY) < 50) { nearbyTrade = { type: 'TRADE', ref: id }; break; } }
                 if(!nearbyInteractable) { for (let n of (currentLoadedMapData.notes||[])) { if(Math.hypot(p.x - n.x, p.y - n.y) < p.size + 25) { nearbyInteractable = { type: 'NOTE', ref: n }; break; } } }
                 if(!nearbyInteractable) { for (let b of (currentLoadedMapData.bots||[])) { if (Math.hypot(p.x - b.x, p.y - b.y) < p.size + b.radius + 20) { nearbyInteractable = { type: 'BOT', ref: b }; break; } } }
                 if(!nearbyInteractable) { for (let tp of (currentLoadedMapData.tps||[])) { if (Math.hypot(p.x - tp.x, p.y - tp.y) < p.size + tp.radius + 15) { nearbyInteractable = { type: 'TP', ref: tp }; break; } } }
                 
-                const prompt = document.getElementById('interaction-prompt'); if(nearbyInteractable && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') prompt.classList.remove('hidden'); else prompt.classList.add('hidden');
+                const prompt = document.getElementById('interaction-prompt');
+                if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                    if (nearbyTrade) { document.getElementById('interaction-btn-text').innerText = "[T] Ticaret Yap"; prompt.classList.remove('hidden'); }
+                    else if (nearbyInteractable) { document.getElementById('interaction-btn-text').innerText = "[E] Etkileşim"; prompt.classList.remove('hidden'); }
+                    else { prompt.classList.add('hidden'); }
+                } else { prompt.classList.add('hidden'); }
                 
-                let burning = false; const nowMs = Date.now();
-                if(currentLoadedMapData.fires) { for(let f of currentLoadedMapData.fires) { if(nowMs - f.startTime < f.duration) { if(Math.hypot(p.x - f.x, p.y - f.y) < p.size + f.radius) { burning = true; p.hp -= 0.15; break; } } } }
-                if (!burning && p.hp < p.maxHp) p.hp += 0.05; p.hp = Math.max(0, Math.min(p.maxHp, p.hp)); 
-                
-                if(currentLoadedMapData.musicZones) { currentLoadedMapData.musicZones.forEach(mz => { if(mz.url && mz.url.trim() !== '') { const dist = Math.hypot(p.x - mz.x, p.y - mz.y); if(!activeAudios[mz.url]) { const a = new Audio(mz.url); a.loop = true; activeAudios[mz.url] = a; } const a = activeAudios[mz.url]; if(dist < mz.radius) { let vol = 1.0 - (dist / mz.radius); if(vol < 0) vol = 0; if(vol > 1) vol = 1; a.volume = vol; if(a.paused) a.play().catch(e=>console.log("Audio play err", e)); } else { a.volume = 0; if(!a.paused) a.pause(); } } }); }
+                if (p.hp < p.maxHp) p.hp += 0.05; p.hp = Math.max(0, Math.min(p.maxHp, p.hp)); 
             }
 
-            // AĞ GÜNCELLEMESİ GÖNDERİMİ (Saniyede 15 kez maksimum)
+            // MÜZİK VE YOUTUBE GÜNCELLEMESİ (Herkes Duyabilir)
+            if (currentLoadedMapData && currentLoadedMapData.musicZones) {
+                currentLoadedMapData.musicZones.forEach(mz => {
+                    if (mz.url && mz.url.trim() !== '') {
+                        let vol = 0;
+                        if (!isGM || !p.isGhost) {
+                            const dist = Math.hypot(p.x - mz.x, p.y - mz.y);
+                            if (dist < mz.radius) { vol = 1.0 - (dist / mz.radius); if(vol < 0) vol = 0; if(vol > 1) vol = 1; }
+                        }
+                        
+                        let isYT = mz.url.includes('youtu');
+                        if (isYT && ytApiReady) {
+                            let vidId = extractVideoID(mz.url);
+                            if (vidId) {
+                                if (!ytPlayers[mz.id]) {
+                                    let div = document.createElement('div'); div.id = 'yt-' + mz.id; document.getElementById('yt-players-container').appendChild(div);
+                                    ytPlayers[mz.id] = new YT.Player('yt-' + mz.id, { videoId: vidId, playerVars: { 'autoplay': 1, 'loop': 1, 'playlist': vidId, 'controls': 0 }, events: { 'onReady': (e) => { e.target.setVolume(0); e.target.playVideo(); } } });
+                                }
+                                let player = ytPlayers[mz.id];
+                                if (player && player.setVolume) player.setVolume(vol * 100);
+                            }
+                        } else if (!isYT) {
+                            if (!activeAudios[mz.id]) { const a = new Audio(mz.url); a.loop = true; activeAudios[mz.id] = a; }
+                            const a = activeAudios[mz.id]; a.volume = vol;
+                            if (vol > 0 && a.paused) a.play().catch(e=>{}); else if (vol === 0 && !a.paused) a.pause();
+                        }
+                    }
+                });
+            }
+
             const now = Date.now(); const distMoved = Math.hypot(p.visualX - lastEmitX, p.visualY - lastEmitY);
             if ((distMoved > 2 || now - lastPlayerEmitTime > 1000) && currentLoadedMapData) { 
                 if (now - lastPlayerEmitTime > 66) { 
@@ -833,33 +898,12 @@
             for (let id in OtherPlayers) { let op = OtherPlayers[id]; if (op.targetX !== undefined && op.targetY !== undefined) { if (op.visualX === undefined) op.visualX = op.targetX; if (op.visualY === undefined) op.visualY = op.targetY; op.visualX += (op.targetX - op.visualX) * 0.3; op.visualY += (op.targetY - op.visualY) * 0.3; } }
             
             if (currentLoadedMapData) {
-                // ATEŞ PARTİKÜL MOTORU EKLENDİ (Fire Particles)
-                if (currentLoadedMapData.fires) {
-                    currentLoadedMapData.fires.forEach(f => {
-                        if (Date.now() - f.startTime < f.duration) {
-                            for(let i=0; i<3; i++) {
-                                fireParticles.push({
-                                    x: f.x + (Math.random()-0.5)*f.radius, y: f.y + (Math.random()-0.5)*f.radius,
-                                    vx: (Math.random()-0.5)*1, vy: -Math.random()*3 - 1,
-                                    life: 1.0, maxLife: Math.random()*0.5 + 0.5, size: Math.random()*15 + 5
-                                });
-                            }
-                        }
-                    });
-                }
-
                 for (let b of (currentLoadedMapData.bots||[])) {
                     let nextBX = b.x; let nextBY = b.y;
                     if (b.moveType === 'random') { if(!b.spawnX) { b.spawnX = b.x; b.spawnY = b.y; } if (!b.targetX || Math.random() < 0.01) { b.targetX = b.spawnX + (Math.random()-0.5)*150; b.targetY = b.spawnY + (Math.random()-0.5)*150; } const dist = Math.hypot(b.targetX - b.x, b.targetY - b.y); if(dist > 5) { const angle = Math.atan2(b.targetY - b.y, b.targetX - b.x); nextBX += Math.cos(angle) * 0.4; nextBY += Math.sin(angle) * 0.4; } } 
                     else if (b.moveType === 'patrol' && b.path && b.path.length > 0) { if (b.pathIndex === undefined) b.pathIndex = 0; const target = b.path[b.pathIndex]; const dist = Math.hypot(target.x - b.x, target.y - b.y); if (dist < 5) { b.pathIndex = (b.pathIndex + 1) % b.path.length; } else { const angle = Math.atan2(target.y - b.y, target.x - b.x); nextBX += Math.cos(angle) * 0.5; nextBY += Math.sin(angle) * 0.5; } }
                     if (!checkCollision(nextBX, b.y, b.radius)) b.x = nextBX; else b.targetX = null; if (!checkCollision(b.x, nextBY, b.radius)) b.y = nextBY; else b.targetX = null;
                 }
-            }
-
-            // Ateş Partikül Güncelleme
-            for (let i = fireParticles.length - 1; i >= 0; i--) {
-                let p = fireParticles[i]; p.life -= 0.02; p.x += p.vx; p.y += p.vy;
-                if (p.life <= 0) fireParticles.splice(i, 1);
             }
 
             if(MemoryStore.weather !== 'NONE') { weatherParticles.forEach(wp => { wp.y += wp.speedY; wp.x += wp.speedX; if(wp.y > window.innerHeight) { wp.y = -10; wp.x = Math.random() * window.innerWidth * 1.5; } }); }
@@ -880,26 +924,18 @@
 
             if (MemoryStore.gameState === 'GAME' && currentLoadedMapData) {
                 ctx.drawImage(currentLoadedMapImg, 0, 0);
-                
-                // Kararmış zemin (Ateş sonrası)
-                if(currentLoadedMapData.fires) {
-                    const now = Date.now();
-                    currentLoadedMapData.fires.forEach(f => {
-                        if (now - f.startTime >= f.duration) { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.beginPath(); ctx.arc(f.x, f.y, f.radius, 0, Math.PI*2); ctx.fill(); }
-                    });
-                }
 
                 if(MemoryStore.role === 'GM') { 
                     if(currentLoadedMapData.walls) { ctx.fillStyle = 'rgba(220, 38, 38, 0.3)'; ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; currentLoadedMapData.walls.forEach(w => { ctx.beginPath(); if(w.type === 'rect') ctx.rect(w.x, w.y, w.w, w.h); else ctx.arc(w.x, w.y, w.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke(); }); }
-                    if(currentLoadedMapData.musicZones) { currentLoadedMapData.musicZones.forEach(mz => { ctx.beginPath(); ctx.arc(mz.x, mz.y, mz.radius, 0, Math.PI*2); ctx.fillStyle = 'rgba(236, 72, 153, 0.2)'; ctx.fill(); ctx.strokeStyle = '#ec4899'; ctx.stroke(); ctx.fillStyle='white'; ctx.fillText('🎵', mz.x, mz.y); }); }
+                    if(currentLoadedMapData.musicZones) { currentLoadedMapData.musicZones.forEach(mz => { ctx.beginPath(); ctx.arc(mz.x, mz.y, mz.radius, 0, Math.PI*2); ctx.fillStyle = 'rgba(236, 72, 153, 0.2)'; ctx.fill(); ctx.strokeStyle = '#ec4899'; ctx.lineWidth=3; ctx.stroke(); ctx.fillStyle='white'; ctx.font='30px serif'; ctx.fillText('🎵', mz.x-15, mz.y+10); }); }
                 }
 
-                if(currentLoadedMapData.notes) currentLoadedMapData.notes.forEach(n => { ctx.fillStyle = '#fcd34d'; ctx.beginPath(); ctx.arc(n.x, n.y, 8, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = '#8b5a2b'; ctx.lineWidth=2; ctx.stroke(); ctx.fillStyle = '#000'; ctx.font='10px serif'; ctx.textAlign='center'; ctx.fillText('📜', n.x, n.y+3); });
+                if(currentLoadedMapData.notes) currentLoadedMapData.notes.forEach(n => { ctx.fillStyle = '#000'; ctx.font='40px serif'; ctx.textAlign='center'; ctx.fillText('📜', n.x, n.y+15); });
 
                 if(currentLoadedMapData.tps) currentLoadedMapData.tps.forEach(t => { ctx.beginPath(); ctx.arc(t.x, t.y, t.radius, 0, Math.PI*2); ctx.fillStyle = MemoryStore.role==='GM' ? 'rgba(168, 85, 247, 0.6)' : 'rgba(168, 85, 247, 0.3)'; ctx.fill(); ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = 'white'; ctx.font='bold 12px cinzel'; ctx.textAlign='center'; ctx.fillText(MemoryStore.role==='GM'?`Geçit (${t.targets.length})`:'GEÇİT', t.x, t.y+4); });
                 if(currentLoadedMapData.bots) currentLoadedMapData.bots.forEach(b => { drawCharacter(b.x, b.y, b.radius, b.name, b.image, b.isMerchant ? '#fcd34d' : '#059669'); if(b.activeBubble) { drawChatBubble(b.x, b.y, b.activeBubble.text, Math.min(1, b.activeBubble.timer/30), b.activeBubble.type); b.activeBubble.timer--; if(b.activeBubble.timer<=0) b.activeBubble=null; } });
                 
-                if (MemoryStore.role === 'PLAYER' || (MemoryStore.role === 'GM' && !MemoryStore.player.isGhost)) {
+                if ((MemoryStore.role === 'PLAYER') || (MemoryStore.role === 'GM' && !MemoryStore.player.isGhost)) {
                     const p = MemoryStore.player; drawCharacter(p.visualX, p.visualY, p.size, p.name, p.image, '#d4af37');
                     if (p.activeBubble) { drawChatBubble(p.visualX, p.visualY, p.activeBubble.text, Math.min(1, p.activeBubble.timer / 30), p.activeBubble.type); p.activeBubble.timer--; if (p.activeBubble.timer <= 0) p.activeBubble = null; }
                 }
@@ -930,16 +966,9 @@
                     }
                 }
 
-                // Ateş Parçacıkları Çizimi
-                fireParticles.forEach(p => {
-                    const c = Math.random() > 0.5 ? '255, 100, 0' : '255, 200, 0';
-                    ctx.fillStyle = `rgba(${c}, ${p.life})`;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2); ctx.fill();
-                });
-
                 if (MemoryStore.role === 'GM' && editorDrawing) { 
                     if (editorTool === 'WALL_RECT') { ctx.fillStyle = 'rgba(220,38,38,0.6)'; ctx.fillRect(Math.min(editStartX, editCurrentX), Math.min(editStartY, editCurrentY), Math.abs(editCurrentX - editStartX), Math.abs(editCurrentY - editStartY)); } 
-                    else if (editorTool === 'WALL_CIRCLE' || editorTool === 'TP' || editorTool === 'MUSIC' || editorTool === 'FIRE') { ctx.beginPath(); ctx.arc(editStartX, editStartY, Math.max(5, Math.hypot(editCurrentX-editStartX, editCurrentY-editStartY)), 0, Math.PI*2); ctx.fillStyle = editorTool === 'TP' ? 'rgba(168,85,247,0.6)' : (editorTool==='MUSIC' ? 'rgba(236,72,153,0.6)' : (editorTool==='FIRE' ? 'rgba(255,100,0,0.6)' : 'rgba(220,38,38,0.6)')); ctx.fill(); }
+                    else if (editorTool === 'WALL_CIRCLE' || editorTool === 'TP' || editorTool === 'MUSIC') { ctx.beginPath(); ctx.arc(editStartX, editStartY, Math.max(5, Math.hypot(editCurrentX-editStartX, editCurrentY-editStartY)), 0, Math.PI*2); ctx.fillStyle = editorTool === 'TP' ? 'rgba(168,85,247,0.6)' : (editorTool==='MUSIC' ? 'rgba(236,72,153,0.6)' : 'rgba(220,38,38,0.6)'); ctx.fill(); }
                 }
                 
                 if (MemoryStore.role === 'GM' && editorTool === 'WALL_ROOF' && tempRoofPoints.length > 0) {
