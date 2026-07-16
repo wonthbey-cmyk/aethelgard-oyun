@@ -1061,14 +1061,16 @@
 
         document.getElementById('chat-form').addEventListener('submit', sendChatMessage);
         function sendChatMessage(e) { e.preventDefault(); sendRawChatMessage(chatInput.value); }
-        function sendRawChatMessage(text) { 
+        function sendRawChatMessage(text, skipToggle = false) { 
             text = text.trim(); if (!text) return; 
 
             if (text.toLowerCase() === '/maske') {
                 MemoryStore.player.isDisguised = !MemoryStore.player.isDisguised;
                 const t = MemoryStore.player.isDisguised ? 'Yüzünü gizleyen bir kukuleta taktı.' : 'Kukuletasını çıkardı ve yüzünü gösterdi.';
                 const msgObj = { name: MemoryStore.player.name, text: t, type: 'EMOTE', target: null, x: MemoryStore.player.visualX, y: MemoryStore.player.visualY, mapId: MemoryStore.player.currentMapId };
-                socket.emit('chat_message', msgObj); msgObj.isLocal = true; displayChatMessage(msgObj); chatInput.value = ''; return;
+                socket.emit('chat_message', msgObj); msgObj.isLocal = true; displayChatMessage(msgObj); 
+                if(!skipToggle) { chatInput.value = ''; chatInput.blur(); toggleChat(); }
+                return;
             }
 
             if (text.startsWith('/sudo ')) {
@@ -1079,7 +1081,9 @@
                 if(!bot) return showModal('Hata', 'Haritada bu isimde bir varlık bulunamadı.');
                 
                 const msgObj = { name: bot.name, text: msg, type: 'SAY', target: null, x: bot.x, y: bot.y, mapId: MemoryStore.player.currentMapId, isSudo: true };
-                socket.emit('chat_message', msgObj); msgObj.isLocal = true; displayChatMessage(msgObj); chatInput.value = ''; return;
+                socket.emit('chat_message', msgObj); msgObj.isLocal = true; displayChatMessage(msgObj); 
+                if(!skipToggle) { chatInput.value = ''; chatInput.blur(); toggleChat(); }
+                return;
             }
 
             let type = 'SAY'; let target = null; let cleanText = text;
@@ -1088,7 +1092,10 @@
             const senderName = MemoryStore.player.isDisguised ? "İsimsiz Gezgin" : (MemoryStore.player.name || 'GM');
             const msgObj = { name: senderName, text: cleanText, type: type, target: target, x: MemoryStore.player.visualX, y: MemoryStore.player.visualY, mapId: MemoryStore.player.currentMapId };
             socket.emit('chat_message', msgObj); msgObj.isLocal = true; displayChatMessage(msgObj);
-            chatInput.value = ''; document.getElementById('whisper-suggestions').classList.add('hidden'); chatInput.blur(); toggleChat(); 
+            
+            if(!skipToggle) {
+                chatInput.value = ''; document.getElementById('whisper-suggestions').classList.add('hidden'); chatInput.blur(); toggleChat(); 
+            }
         }
 
         socket.on('new_chat_message', (msg) => { if (msg.socketId === socket.id && !msg.isSudo) return; displayChatMessage(msg); });
@@ -1135,7 +1142,7 @@
             if (key === 'K') {
                 if (nearbyInteractable.type === 'DOOR' || nearbyInteractable.type === 'CHEST') {
                     socket.emit('interact_object', MemoryStore.player.currentMapId, nearbyInteractable.type, nearbyInteractable.ref.id, 'TOGGLE_LOCK');
-                    sendRawChatMessage(nearbyInteractable.ref.isLocked ? "*Kilidi açar*" : "*Kilitler*");
+                    sendRawChatMessage(nearbyInteractable.ref.isLocked ? "*Kilidi açar*" : "*Kilitler*", true);
                 }
                 return;
             }
@@ -1150,11 +1157,11 @@
             else if(nearbyInteractable.type === 'DOOR') { 
                 if (nearbyInteractable.ref.isLocked) return showModal("Kilitli", "Bu kapı kilitli.");
                 socket.emit('interact_object', MemoryStore.player.currentMapId, 'DOOR', nearbyInteractable.ref.id, 'TOGGLE_OPEN'); 
-                sendRawChatMessage(nearbyInteractable.ref.isOpen ? "*Kapıyı kapatır*" : "*Kapıyı açar*"); 
+                sendRawChatMessage(nearbyInteractable.ref.isOpen ? "*Kapıyı kapatır*" : "*Kapıyı açar*", true); 
             }
             else if(nearbyInteractable.type === 'CHEST') { 
                 if (nearbyInteractable.ref.isLocked) return showModal("Kilitli", "Bu sandık kilitli.");
-                openChestModal(nearbyInteractable.ref); sendRawChatMessage("*Sandığı karıştırır*"); 
+                openChestModal(nearbyInteractable.ref); sendRawChatMessage("*Sandığı karıştırır*", true); 
             }
             else if(nearbyInteractable.type === 'TP') { 
                 const c = document.getElementById('tp-use-options'); c.innerHTML = ''; 
@@ -1295,15 +1302,25 @@
                 });
 
                 if(currentLoadedMapData.doors) currentLoadedMapData.doors.forEach(d => { 
-                    if(d.isOpen) { ctx.strokeStyle = 'rgba(124,45,18,0.4)'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); }
+                    if(d.isOpen) { ctx.strokeStyle = 'rgba(124,45,18,0.3)'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); }
                     else { ctx.fillStyle = 'rgba(124,45,18,0.9)'; ctx.strokeStyle = d.isLocked ? '#dc2626' : '#7c2d12'; ctx.lineWidth = 3; ctx.setLineDash([]); }
                     ctx.beginPath(); ctx.moveTo(d.points[0].x, d.points[0].y); for(let i=1; i<d.points.length; i++) ctx.lineTo(d.points[i].x, d.points[i].y); ctx.closePath(); 
                     if(!d.isOpen) ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+                    
+                    if(d.isLocked && !d.isOpen) {
+                        ctx.fillStyle = '#dc2626'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('🔒', d.points[0].x, d.points[0].y);
+                    }
                 });
 
                 if(currentLoadedMapData.chests) currentLoadedMapData.chests.forEach(c => { 
                     ctx.fillStyle = 'rgba(133,77,14,0.9)'; ctx.strokeStyle = c.isLocked ? '#dc2626' : '#854d0e'; ctx.lineWidth = 3; 
                     ctx.beginPath(); ctx.moveTo(c.points[0].x, c.points[0].y); for(let i=1; i<c.points.length; i++) ctx.lineTo(c.points[i].x, c.points[i].y); ctx.closePath(); ctx.fill(); ctx.stroke(); 
+                    
+                    if(c.isLocked) {
+                        ctx.fillStyle = '#dc2626'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                        ctx.fillText('🔒', c.points[0].x, c.points[0].y);
+                    }
                 });
 
                 if(MemoryStore.role === 'GM') { 
