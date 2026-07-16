@@ -22,7 +22,7 @@ let serverState = {
         { username: '213enbüyükbenim', password: '213213', role: 'GM' }
     ],
     usersData: {},
-    auctions: [] // Müzayede/İhale eşyaları
+    auctions: [] 
 };
 
 if (fs.existsSync(DATA_FILE)) {
@@ -43,7 +43,7 @@ if (fs.existsSync(DATA_FILE)) {
 function saveData() { fs.writeFileSync(DATA_FILE, JSON.stringify(serverState, null, 2)); }
 
 let activePlayers = {}; 
-let activeLogins = {}; // Multi-login engellemek için
+let activeLogins = {}; 
 
 io.on('connection', (socket) => {
     console.log('Bir ruh bağlantı kurdu. ID:', socket.id);
@@ -51,7 +51,6 @@ io.on('connection', (socket) => {
     socket.on('login_request', (username, password) => {
         const user = serverState.users.find(u => u.username === username && u.password === password);
         if (user) {
-            // MULTI-LOGIN KONTROLÜ
             if (activeLogins[username]) {
                 io.to(activeLogins[username]).emit('force_logout', "Başka bir diyardan giriş yapıldı. Ruhun ikiye bölündü!");
             }
@@ -63,7 +62,7 @@ io.on('connection', (socket) => {
                     gold: user.role === 'GM' ? 999999 : 0, bankGold: 0,
                     hp: 100, maxHp: 100, 
                     inventory: [], wardrobe: [], 
-                    stats: { str: 5, agi: 5, int: 5, per: 5 }, // D&D Stats
+                    stats: { str: 5, agi: 5, int: 5, per: 5, con: 5, cha: 5 }, 
                     image: null, name: username, size: 18
                 };
             }
@@ -106,7 +105,8 @@ io.on('connection', (socket) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
             Object.assign(map, objectsData);
-            saveData(); socket.broadcast.emit('map_objects_synced', mapId, objectsData);
+            saveData(); 
+            socket.broadcast.emit('map_objects_synced', mapId, objectsData);
         }
     });
 
@@ -124,13 +124,12 @@ io.on('connection', (socket) => {
     socket.on('gm_teleport_action', (action, targetId, mapId, x, y) => {
         if(action === 'goto') { const target = activePlayers[targetId]; if(target) socket.emit('force_teleport', target.mapId, target.visualX, target.visualY); } 
         else if (action === 'pull') { io.to(targetId).emit('force_teleport', mapId, x, y); }
-        else if (action === 'group') { io.emit('check_group_teleport', mapId, x, y, targetId); } // targetId is bounding box here
+        else if (action === 'group') { io.emit('check_group_teleport', mapId, x, y, targetId); }
     });
 
     socket.on('gm_stun_player', (targetId) => { io.to(targetId).emit('get_stunned'); });
     socket.on('gm_send_quest', (targetId, questText, goldReward) => { io.to(targetId).emit('receive_quest', questText, goldReward); });
 
-    // BANKA & İHALE
     socket.on('bank_deposit', (username, amount) => {
         if(serverState.usersData[username]) {
             if(serverState.usersData[username].gold >= amount) {
@@ -152,7 +151,7 @@ io.on('connection', (socket) => {
 
     socket.on('item_action_broadcast', (mapId, actionType, x, y, data) => { socket.broadcast.emit('item_action_receive', mapId, actionType, x, y, data); });
 
-    // KAPI VE SANDIK KİLİT
+    // KAPI VE SANDIK (Aç/Kapat & Kilitle)
     socket.on('toggle_lock', (mapId, type, objId) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map) {
@@ -162,12 +161,19 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('toggle_door_state', (mapId, objId) => {
+        let map = serverState.maps.find(m => m.id === mapId);
+        if (map && map.doors) {
+            let obj = map.doors.find(o => o.id === objId);
+            if(obj && !obj.isLocked) { obj.isOpen = !obj.isOpen; saveData(); io.emit('map_objects_synced', mapId, map); }
+        }
+    });
+
     socket.on('chest_update', (mapId, chestId, items) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map && map.chests) { let chest = map.chests.find(c => c.id === chestId); if(chest) { chest.items = items; saveData(); io.emit('map_objects_synced', mapId, map); } }
     });
 
-    // NOTLARI TEMİZLEME (Envantere alındığında)
     socket.on('remove_note_from_map', (mapId, noteId) => {
         let map = serverState.maps.find(m => m.id === mapId);
         if (map && map.notes) {
@@ -177,7 +183,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // TİCARET
     let trades = {};
     socket.on('trade_request', (targetId, reqName) => { io.to(targetId).emit('trade_request_received', socket.id, reqName); });
     socket.on('trade_accept', (requesterId) => {
